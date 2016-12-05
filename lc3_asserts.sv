@@ -1,7 +1,7 @@
 `include "assert_macros.sv"
 
 module lc3_asserts (
-	// Put wires to test here (all inputs)
+	// Put wires to test here (all inputs) 
 	input logic clk);
 	
 	/*input logic [7:0] dout, 
