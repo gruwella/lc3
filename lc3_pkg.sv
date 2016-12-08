@@ -11,23 +11,24 @@
  end while (0)
 
 package lc3_pkg;
-
-	integer num_instructions = 1000;
+	typedef enum {op_add=32'h1, op_and=32'h5, op_not=32'h9, op_br=32'h0, op_jmp=32'hC, op_jsr=32'h4, op_ld=32'h2, op_ldr=32'h6, op_lea=32'hE, op_ldi=32'hA, op_st=32'h3, op_str=32'h7, op_sti=32'hB, op_rti=32'h8, op_ioe=32'hD, op_trap=32'hF} opcode_type;
 
 	//typedef enum bit [3:0] {NOP=0, ADD, SUB, AND, NOT, RD, WR, BR, BRZ, RDI} Instruction; //, HALT=4'hF 
-	typedef enum bit [3:0] {ADD, AND, NOT, BR, JMP, JSR, JSRR, RET, LD, LDI, LDR, LEA, ST, STI, STR, TRAP, RTI} Instruction;
+	//typedef enum bit [3:0] {ADD, AND, NOT, BR, JMP, JSR, JSRR, RET, LD, LDI, LDR, LEA, ST, STI, STR, TRAP, RTI} Instruction;
 	
 	class Transaction #(ADDRESS_WIDTH=8);
 	
-		rand Instruction opcode;
-		rand bit [1:0] src, dst;
-		rand bit [ADDRESS_WIDTH-1:0] addr;
+		opcode_type opcode;
+		//rand bit [2:0] src1, src2, dst;
+		rand bit [15:0] instruction;
 		
-		function new (Instruction op=NOP, bit [1:0] s=0, bit [1:0] d=0, bit [ADDRESS_WIDTH-1:0] a=0);
-			opcode = op;
-			src = s;
-			dst = d;
-			addr = a;
+		function new (bit [15:0] i=0);
+			instruction = i;
+			opcode = opcode_type'({28'h0, instruction[31:28]});
+		endfunction
+		
+		function void post_randomize();
+			opcode = opcode_type'({28'h0, instruction[31:28]});
 		endfunction
 	
 	endclass: Transaction
@@ -86,111 +87,50 @@ package lc3_pkg;
 		covergroup CovOp;
 			option.per_instance = 1;
 			// Test that all opcodes have been used
-			opcode: coverpoint sample_t.opcode{
-				ignore_bins ignore = {BR, BRZ};
+			opcode: coverpoint sample_t.opcode;
+			
+			source11_9: coverpoint sample_t.instruction[11:9]{
+				option.weight = 0;
+			}
+			source8_6: coverpoint sample_t.instruction[8:6]{
+				option.weight = 0;
+			}
+			source2_0: coverpoint sample_t.instruction[2:0]{
+				option.weight = 0;
+			}
+			destination: coverpoint sample_t.instruction[11:9]{
+				option.weight = 0;
 			}
 			
-			source: coverpoint sample_t.src{
-				option.weight = 0;
-			}
-			destination: coverpoint sample_t.dst{
-				option.weight = 0;
-			}
-			address: coverpoint sample_t.addr{
-				bins all_memory[] = {[0:$]};
-				option.weight = 0;
+			//op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap
+			
+			// Test that all opcodes with a source register have been tested with all possible source registers
+			cross opcode, source11_9{
+				option.weight = 2;
+				ignore_bins ignore_no_src11_9 = binsof(opcode) intersect {op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_rti, op_ioe, op_trap};
 			}
 			
 			// Test that all opcodes with a source register have been tested with all possible source registers
-			cross opcode, source{
+			cross opcode, source8_6{
 				option.weight = 2;
-				ignore_bins ignore_no_src = binsof(opcode) intersect {NOP, RD, RDI, BR, BRZ};
+				ignore_bins ignore_no_src8_6 = binsof(opcode) intersect {op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
+			}
+			
+			// Test that all opcodes with a source register have been tested with all possible source registers
+			cross opcode, source2_0{
+				option.weight = 2;
+				ignore_bins ignore_no_src2_0 = binsof(opcode) intersect {op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 			}
 			
 			// Test that all opcodes with a dst register have been tested with all possible dst registers
 			cross opcode, destination{
 				option.weight = 2;
-				ignore_bins ignore_no_dst = binsof(opcode) intersect {NOP, WR, BR, BRZ};
+				ignore_bins ignore_no_dst = binsof(opcode) intersect {op_br, op_jmp, op_jsr, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 			}
 			
-			// Test that all opcodes with a src and dst register have been tested with all permutations of src and dst
-			cross opcode, source, destination{
-				option.weight = 2;
-				ignore_bins ignore_no_src_dest = binsof(opcode) intersect {NOP, RD, WR, BR, BRZ, RDI};
-			}
-			
-			cross opcode, address{
-				option.weight = 2;
-				ignore_bins ignore_non_wr = binsof(opcode) intersect {NOP, ADD, SUB, AND, NOT, BR, BRZ, RDI};
-			}
-			
-			// Test that all opcodes have been run before and after all other opcodes
-			coverpoint sample_t.opcode {
-				bins nop_add = (NOP=>ADD);
-				bins nop_sub = (NOP=>SUB);
-				bins nop_and = (NOP=>AND);
-				bins nop_not = (NOP=>NOT);
-				bins nop_rd = (NOP=>RD);
-				bins nop_wr = (NOP=>WR);
-				bins nop_rdi = (NOP=>RDI);
-				
-				bins add_nop = (ADD=>NOP);
-				bins add_sub = (ADD=>SUB);
-				bins add_and = (ADD=>AND);
-				bins add_not = (ADD=>NOT);
-				bins add_rd = (ADD=>RD);
-				bins add_wr = (ADD=>WR);
-				bins add_rdi = (ADD=>RDI);
-				
-				bins sub_nop = (SUB=>NOP);
-				bins sub_add = (SUB=>ADD);
-				bins sub_and = (SUB=>AND);
-				bins sub_not = (SUB=>NOT);
-				bins sub_rd = (SUB=>RD);
-				bins sub_wr = (SUB=>WR);
-				bins sub_rdi = (SUB=>RDI);
-				
-				bins and_nop = (AND=>NOP);
-				bins and_add = (AND=>ADD);
-				bins and_sub = (AND=>SUB);
-				bins and_not = (AND=>NOT);
-				bins and_rd = (AND=>RD);
-				bins and_wr = (AND=>WR);
-				bins and_rdi = (AND=>RDI);
-				
-				bins not_nop = (NOT=>NOP);
-				bins not_add = (NOT=>ADD);
-				bins not_sub = (NOT=>SUB);
-				bins not_and = (NOT=>AND);
-				bins not_rd = (NOT=>RD);
-				bins not_wr = (NOT=>WR);
-				bins not_rdi = (NOT=>RDI);
-				
-				bins rd_nop = (RD=>NOP);
-				bins rd_add = (RD=>ADD);
-				bins rd_sub = (RD=>SUB);
-				bins rd_and = (RD=>AND);
-				bins rd_not = (RD=>NOT);
-				bins rd_wr = (RD=>WR);
-				bins rd_rdi = (RD=>RDI);
-				
-				bins wr_nop = (WR=>NOP);
-				bins wr_add = (WR=>ADD);
-				bins wr_sub = (WR=>SUB);
-				bins wr_and = (WR=>AND);
-				bins wr_not = (WR=>NOT);
-				bins wr_rd = (WR=>RD);
-				bins wr_rdi = (WR=>RDI);
-				
-				bins rdi_nop = (RDI=>NOP);
-				bins rdi_add = (RDI=>ADD);
-				bins rdi_sub = (RDI=>SUB);
-				bins rdi_and = (RDI=>AND);
-				bins rdi_not = (RDI=>NOT);
-				bins rdi_rd = (RDI=>RD);
-				bins rdi_wr = (RDI=>WR);
-			}
+			//TODO: make more cover groups
 		endgroup
+		
 		virtual task pre_tx(ref Transaction #(ADDRESS_WIDTH) t);
 			sample_t = t;
 			CovOp.sample;
@@ -212,14 +152,13 @@ package lc3_pkg;
 	
 	
 	class Driver #(ADDRESS_WIDTH=8);
-		virtual risc_if#(ADDRESS_WIDTH).TB ports;
+		virtual lc3_if#(ADDRESS_WIDTH).TB ports;
 		mailbox #(Transaction #(ADDRESS_WIDTH)) agt2drv;
 		Transaction #(ADDRESS_WIDTH) t;
-		bit [7:0] inst;
 		Driver_cbs #(ADDRESS_WIDTH) cbs[$];
 		integer count;
 		
-		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) a2d, virtual risc_if#(ADDRESS_WIDTH).TB p);
+		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) a2d, virtual lc3_if#(ADDRESS_WIDTH).TB p);
 			agt2drv = a2d;
 			ports = p;
 			count = 0;
@@ -227,10 +166,10 @@ package lc3_pkg;
 		
 		task run;
 			// Reset the DUT
-			ports.rst <= 0;
+			ports.reset <= 0;
 			repeat (3) @ports.cb;
-			ports.rst <= 1;
-			ports.cb.data_out <= 0;
+			ports.reset <= 1;
+			ports.cb.memOut <= 0;
 			repeat (2) @ports.cb;
 			
 			// Begin driving instructions
@@ -240,50 +179,12 @@ package lc3_pkg;
 				foreach(cbs[i]) begin
 					cbs[i].pre_tx(t);
 				end
-				inst = {t.opcode, t.src, t.dst};
-				ports.cb.data_out <= inst;
+				ports.cb.memOut <= t.instruction;
 				@ports.cb;
-				if(t.opcode == NOP || t.opcode == NOT || (t.opcode == BRZ && $root.risc_top.my_risc.Zflag == 0)) begin
-					// Return to Fetch 1
-					repeat (2) @ports.cb;
-				end else if(t.opcode == ADD || t.opcode == SUB || t.opcode == AND) begin
-					repeat (3) @ports.cb;
-				end else if(t.opcode == RD || t.opcode == RDI) begin
-					if(t.opcode == RD) begin
-						// Move to Read 2
-						@ports.cb;
-						// Drive fake data
-						ports.cb.data_out <= t.addr;
-					end
-					// Move to Read 1
-					@ports.cb;
-					// Drive Address
-					ports.cb.data_out <= 8'hFF;
-					// Move to Fetch 1
-					repeat (2) @ports.cb;
-				end else if(t.opcode == WR) begin
-					// Move to Write 1
-					@ports.cb;
-					// Drive Address
-					ports.cb.data_out <= t.addr;
-					// Move to Write 2
-					@ports.cb;
-					// Move to Fetch 1
-					repeat (2) @ports.cb;
-				end else if(t.opcode == BR || (t.opcode == BRZ && $root.risc_top.my_risc.Zflag == 1)) begin
-					// Move to Branch 1
-					@ports.cb;
-					// Drive Address
-					ports.cb.data_out <= t.addr;
-					// Move to Branch 2
-					@ports.cb;
-					// Drive fake data
-					ports.cb.data_out <= 8'hFF;
-					// Move to Fetch 1
-					repeat (2) @ports.cb;
+				if(t.opcode == op_add) begin
+					//TODO: finish this and other opcodes
 				end else begin
-					$display("%g\tHalt Instruction Received!  Quitting...", $time);
-					return;
+					$display("%g\tInstruction %d Received!", $time, t.opcode);
 				end
 				foreach(cbs[i]) begin
 					cbs[i].post_tx(t, count);
@@ -295,13 +196,13 @@ package lc3_pkg;
 	
 
 	class Environment #(ADDRESS_WIDTH=8);
-		virtual risc_if#(ADDRESS_WIDTH).TB ports;
+		virtual lc3_if#(ADDRESS_WIDTH).TB ports;
 		Generator #(ADDRESS_WIDTH) gen;
 		Agent #(ADDRESS_WIDTH) agt;
 		Driver #(ADDRESS_WIDTH) drv;
 		mailbox #(Transaction #(ADDRESS_WIDTH)) gen2agt, agt2drv;
 		
-		function new(virtual risc_if#(ADDRESS_WIDTH).TB p);
+		function new(virtual lc3_if#(ADDRESS_WIDTH).TB p);
 			ports = p;
 		endfunction
 		
