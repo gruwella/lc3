@@ -15,7 +15,7 @@ module lc3_top;
 	end
 	
 	lc3_if #(ADDRESS_WIDTH) my_if(clk);
-	//lc3_tb #(ADDRESS_WIDTH) my_tb();
+	lc3_tb #(ADDRESS_WIDTH) my_tb();
 	//memory my_mem(clk, my_if.MEM);
 	ammon_lc3 my_lc3(clk, my_if.DUT);
 	

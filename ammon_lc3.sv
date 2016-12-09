@@ -424,14 +424,16 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 		(sr2 == 3'b100) ? r4_out:
 		(sr2 == 3'b101) ? r5_out:
 		(sr2 == 3'b110) ? r6_out: r7_out;
-		register_t r0 (r0_out, clk, r0_in, reset, regwe);
-		register_t r1 (r1_out, clk, r1_in, reset, regwe);
-		register_t r2 (r2_out, clk, r2_in, reset, regwe);
-		register_t r3 (r3_out, clk, r3_in, reset, regwe);
-		register_t r4 (r4_out, clk, r4_in, reset, regwe);
-		register_t r5 (r5_out, clk, r5_in, reset, regwe);
-		register_t r6 (r6_out, clk, r6_in, reset, regwe);
-		register_t r7 (r7_out, clk, r7_in, reset, regwe);
+	
+	
+	register_t r0 (r0_out, clk, r0_in, reset, regwe);
+	register_t r1 (r1_out, clk, r1_in, reset, regwe);
+	register_t r2 (r2_out, clk, r2_in, reset, regwe);
+	register_t r3 (r3_out, clk, r3_in, reset, regwe);
+	register_t r4 (r4_out, clk, r4_in, reset, regwe);
+	register_t r5 (r5_out, clk, r5_in, reset, regwe);
+	register_t r6 (r6_out, clk, r6_in, reset, regwe);
+	register_t r7 (r7_out, clk, r7_in, reset, regwe);
 
 	//Tri-state Bus Drivers
 	tristate_driver pc_tsd (pc, buss, en_pc);

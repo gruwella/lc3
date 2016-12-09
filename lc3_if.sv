@@ -18,5 +18,6 @@ interface lc3_if #(ADDRESS_WIDTH=16) (input bit clk);
 	modport DUT(input reset, output memwe, mdr, mar, input memOut);
 	modport MEM(input reset, memwe, mdr, mar, output memOut);
 	modport TB(clocking cb, output reset);
+	modport MON(input reset, memwe, mdr, mar, memOut);
 
 endinterface

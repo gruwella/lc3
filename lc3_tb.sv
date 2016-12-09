@@ -8,6 +8,7 @@ program automatic lc3_tb #(ADDRESS_WIDTH=8);
 	import lc3_pkg::*;
 	Environment #(ADDRESS_WIDTH) env;
 	Driver_cbs_coverage #(ADDRESS_WIDTH) dcv;
+	Driver_cbs_expected #(ADDRESS_WIDTH) dex;
 	virtual lc3_if #(ADDRESS_WIDTH).TB my_if;
 	
 	initial begin
@@ -16,7 +17,9 @@ program automatic lc3_tb #(ADDRESS_WIDTH=8);
 		env.build();
 		begin
 			dcv = new();
+			dex = new();
 			env.drv.cbs.push_back(dcv);
+			env.drv.cbs.push_back(dex);
 		end
 		env.run();
 	end
