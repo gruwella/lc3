@@ -8,6 +8,24 @@ $finish; \
 end \
 end while(0)
 
+ // Define the Opcodes
+  parameter ADD 	     = 4'b0001;
+  parameter AND 	     = 4'b0101;
+  parameter NOT 	     = 4'b1001;
+  parameter BR		      = 4'b0000;
+  parameter JMP_RET   = 4'b1100;
+  parameter JSR_JSRR  = 4'b0100;
+  parameter LD        = 4'b0010;
+  parameter LDI       = 4'b1010;
+  parameter LDR       = 4'b0110;
+  parameter LEA       = 4'b1110;
+  parameter ST        = 4'b0011;
+  parameter STI       = 4'b1011;
+  parameter STR       = 4'b0111;
+  parameter TRAP      = 4'b1111;
+  parameter RTI       = 4'b1000;
+  parameter reserved  = 4'b1101;
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -17,17 +35,28 @@ class Transaction(#ADD_WIDTH = 8);
    rand logic [1:0] dst;
    rand logic [1:0] src;
    rand logic [ADD_WIDTH - 1:0] addr;
+   
+   logic n,z,p;
+   
   
           constraint op_const {
                                 opcode dist {
-                                      NOP :=1,
                                       ADD :=1,
-                                      SUB :=1,
                                       AND :=1,
                                       NOT :=1,
-                                      RD := 1,
-                                      WR := 1, 
-                                      RDI :=1 
+                                      BR  :=1,
+                                      JMP_RET := 1,
+                                      JSR_JSRR := 1,
+                                      LD   :=1,
+                                      LDI  :=1,
+                                      LDR  :=1,
+                                      LEA  :=1,
+                                      ST   :=1,
+                                      STI  :=1,
+                                      STR  :=1,
+                                      TRAP :=1,
+                                      RTI :=1
+                                       
                                 };
                               } 
   
@@ -80,8 +109,56 @@ endtask
   task wrap_up();
     endtask
 endclass
+//////////////////////////////////////////////////////////////////////////////////////////
+
+virtual class Driver_cbs;
+
+
+                virtual task pre_tx(ref Transaction tr);
+                            // By default, callback does nothing
+                endtask
+
+
+                virtual task post_tx(ref Transaction tr);
+                          // By default, callback does nothing
+                endtask
+
+
+endclass
+
 
 /////////////////////////////////////////////////////////////////////////////////
+
+virtual class Driver_cbs_scoreboard extends Driver_cbs;
+
+
+                virtual task pre_tx(ref Transaction tr);
+                            // By default, callback does nothing
+                endtask
+
+
+                virtual task post_tx(ref Transaction tr);
+                          // By default, callback does nothing
+                endtask
+
+
+endclass
+////////////////////////////////////////////////////////////////////////////////////////////////
+virtual class Driver_cbs_monitor extends Driver_cbs;
+
+
+                virtual task pre_tx(ref Transaction tr);
+                            // By default, callback does nothing
+                endtask
+
+
+                virtual task post_tx(ref Transaction tr);
+                          // By default, callback does nothing
+                endtask
+
+
+endclass
+////////////////////////////////////////////////////////////////////////////////////////////
 class Enviroment;
  
  // Config cfg;
@@ -123,7 +200,14 @@ class Enviroment;
   
   
 endclass
+//////////////////////////////////////////////////////////////////////////////////////
 
-
+class golden_lc3;
+  
+  
+  
+  
+  
+endclass
   
 endpackage
