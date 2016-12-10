@@ -16,8 +16,19 @@ package lc3_pkg;
 	class Transaction #(ADDRESS_WIDTH=8);
 	
 		opcode_type opcode;
-		rand bit [2:0] src1, src2, dst;
+		bit [2:0] src1, src2, dst;
+		bit [4:0] imm5_val;
+		bit imm5_bit;
+		bit [8:0] pc_offset9;
+		bit [10:0] pc_offset11;
+		bit jsr_bit;
+		bit n_flag, z_flag, p_flag;
+		bit [7:0] trapvec8;
+		bit [5:0] offset6;
 		rand bit [15:0] instruction;
+		rand bit rst; //TODO add constraint
+		
+		constraint rst_d { rst dist {0:=98, 1:=2};}
 		
 		function new (bit [15:0] i=0);
 			instruction = i;
@@ -25,6 +36,16 @@ package lc3_pkg;
 			src1 = instruction[8:6];
 			src2 = instruction[2:0];
 			dst = instruction[11:9];
+			imm5_val = instruction[4:0];
+			imm5_bit = instruction[5];
+			pc_offset9 = instruction[8:0];
+			n_flag = instruction[11];
+			z_flag = instruction[10];
+			p_flag = instruction[9];
+			jsr_bit = n_flag;
+			pc_offset11 = instruction[10:0];
+			trapvec8 = instruction[7:0];
+			offset6 = instruction[5:0];
 		endfunction
 		
 		function void post_randomize();
@@ -32,6 +53,16 @@ package lc3_pkg;
 			src1 = instruction[8:6];
 			src2 = instruction[2:0];
 			dst = instruction[11:9];
+			imm5_val = instruction[4:0];
+			imm5_bit = instruction[5];
+			pc_offset9 = instruction[8:0];
+			n_flag = instruction[11];
+			z_flag = instruction[10];
+			p_flag = instruction[9];
+			jsr_bit = n_flag;
+			pc_offset11 = instruction[10:0];
+			trapvec8 = instruction[7:0];
+			offset6 = instruction[5:0];
 		endfunction
 	
 	endclass: Transaction
@@ -175,27 +206,50 @@ package lc3_pkg;
 		endfunction
 	endclass: State
 	
+	typedef class Scoreboard;
 	
 	class Driver #(ADDRESS_WIDTH=8);
-		virtual lc3_if#(ADDRESS_WIDTH).TB ports;
+		virtual test_if #(ADDRESS_WIDTH).TB2DUT tb_ports;
+		virtual mem_if #(ADDRESS_WIDTH).TB2MEM dut_mem_ports;
 		mailbox #(Transaction #(ADDRESS_WIDTH)) agt2drv;
 		Transaction #(ADDRESS_WIDTH) t;
 		Driver_cbs #(ADDRESS_WIDTH) cbs[$];
 		integer count;
 		State s;
+		bit [15:0] my_memory [0:255];
+		Scoreboard sb;
 		
-		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) a2d, virtual lc3_if#(ADDRESS_WIDTH).TB p);
+		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) a2d, virtual test_if #(ADDRESS_WIDTH).TB2DUT tbd, virtual mem_if #(ADDRESS_WIDTH).TB2MEM dutm, Scoreboard sb);
+			// Ports
+			tb_ports = tbd;
+			dut_mem_ports = dutm;
+			
+			// Mailbox
 			agt2drv = a2d;
-			ports = p;
+			
+			// Instruction count
 			count = 0;
+			
+			sb = this.sb;
 		endfunction
+		
+		task connect_signals;
+			forever begin
+				dut_mem_ports.memwe <= tb_ports.memwe;
+				dut_mem_ports.mdr <= tb_ports.mdr;
+				dut_mem_ports.mar <= tb_ports.mar;
+				@dut_mem_ports.clk; //TODO: make sure this is needed
+			end
+		endtask
 		
 		task run;
 			// Reset the DUT
-			ports.reset <= 1;
+			tb_ports.reset <= 1;
+			dut_mem_ports.reset <= 1;
 			repeat (3) @ports.cb;
-			ports.reset <= 0;
-			ports.cb.memOut <= 0;
+			tb_ports.reset <= 0;
+			dut_mem_ports.reset <= 0;
+			tb_ports.memOut <= 0;
 			@ports.cb;
 			
 			// Begin driving instructions
@@ -207,27 +261,105 @@ package lc3_pkg;
 					cbs[i].pre_tx(t);
 				end
 				repeat(3) @ports.cb;
-				ports.cb.memOut <= t.instruction;
+				tb_ports.memOut <= t.instruction;
 				@ports.cb;
-				s.pc = $root.lc3_top.my_lc3.my_dp.pc;
-				s.regs[0] = $root.lc3_top.my_lc3.my_dp.r0;
-				s.regs[1] = $root.lc3_top.my_lc3.my_dp.r1;
-				s.regs[2] = $root.lc3_top.my_lc3.my_dp.r2;
-				s.regs[3] = $root.lc3_top.my_lc3.my_dp.r3;
-				s.regs[4] = $root.lc3_top.my_lc3.my_dp.r4;
-				s.regs[5] = $root.lc3_top.my_lc3.my_dp.r5;
-				s.regs[6] = $root.lc3_top.my_lc3.my_dp.r6;
-				s.regs[7] = $root.lc3_top.my_lc3.my_dp.r7;
+				tb_ports.memOut <= dut_mem_ports.memOut;
+				if(t.rst == 1) begin
+					tb_ports.reset <= 1;
+					dut_mem_ports.reset <= 1;
+					@ports.cb;
+					
+					tb_ports.reset <= 0;
+					dut_mem_ports.reset <= 0;
+					@ports.cb;
+					continue;
+				end
+				s.pc = tb_ports.pc;
+				s.regs[0] = tb_ports.r0;
+				s.regs[1] = tb_ports.r1;
+				s.regs[2] = tb_ports.r2;
+				s.regs[3] = tb_ports.r3;
+				s.regs[4] = tb_ports.r4;
+				s.regs[5] = tb_ports.r5;
+				s.regs[6] = tb_ports.r6;
+				s.regs[7] = tb_ports.r7;
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
+					if(t.opcode == op_sti) begin // store indirect
+						s.mem_addr = my_memory[s.pc + t.pc_offset9];
+						s.mem_val = t.dst; // This is actually a source register
+						my_memory[s.mem_addr] = s.mem_val;
+					end else if(t.opcode == op_ldi) begin // load indirect
+						s.dst_val = my_memory[my_memory[s.pc + t.pc_offset9]];
+						s.dst_reg = t.dst;
+					end else if(t.opcode == op_ldr) begin // load register
+						s.dst_val = my_memory[s.src1 + t.offset6];
+						s.dst_reg = t.dst;
+					end
 					repeat(4) @ports.cb;
-				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_str)) begin // 6 clk cycles
+				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
+					if(t.opcode == op_st) begin // store
+						s.mem_addr = s.pc + t.pc_offset9;
+						s.mem_val = t.dst; // This is actually a source register
+						my_memory[s.mem_addr] = s.mem_val;
+					end else if(t.opcode == op_str) begin // store register
+						s.mem_addr = t.src1 + t.offset6;
+						s.mem_val = t.dst; // This is actually a source register
+						my_memory[s.mem_addr] = s.mem_val;
+					end else if(t.opcode == op_ld) begin // load
+						s.dst_val = my_memory[s.pc + t.pc_offset9];
+						s.dst_reg = t.dst;
+					end
 					repeat(2) @ports.cb;
 				end else if((t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_not) || (t.opcode == op_br) || (t.opcode == op_jmp) 
 							|| (t.opcode == op_jsr) || (t.opcode == op_trap) || (t.opcode == op_rti) || (t.opcode == op_ioe)) begin // 4 clk cycles
-					if(t.opcode == op_add) begin
-						s.regs[t.dst] = s.regs[t.src1] + s.regs[t.src2];
+					if(t.opcode == op_add) begin //add instruction
+						if(t.imm5_bit == 1) begin
+							s.regs[t.dst] = s.regs[t.src1] + t.imm5_val;
+							s.dst_val = s.regs[t.dst];
+							s.dst_reg = t.dst;
+						end else begin
+							s.regs[t.dst] = s.regs[t.src1] + s.regs[t.src2];
+							s.dst_val = s.regs[t.dst];
+							s.dst_reg = t.dst;
+						end
+					end else if(t.opcode == op_and) begin //and instruction
+						if(t.imm5_bit == 1) begin
+							s.regs[t.dst] = s.regs[t.src1] & t.imm5_val;
+							s.dst_val = s.regs[t.dst];
+							s.dst_reg = t.dst;
+						end else begin
+							s.regs[t.dst] = s.regs[t.src1] & s.regs[t.src2];
+							s.dst_val = s.regs[t.dst];
+							s.dst_reg = t.dst;
+						end
+					end else if(t.opcode == op_not) begin //not instruction
+						s.regs[t.dst] = ~(s.regs[t.src1]);
 						s.dst_val = s.regs[t.dst];
 						s.dst_reg = t.dst;
+					end else if(t.opcode == op_br) begin //branch instruction
+						if((t.n_flag & tb_ports.n_flag) || (t.z_flag & tb_ports.z_flag) || (t.p_flag & tb_ports.p_flag)) begin
+							s.pc = s.pc + t.pc_offset9;
+						end
+					end else if(t.opcode == op_jmp) begin // jump
+						s.pc = s.regs[t.src1];
+					end else if(t.opcode == op_jsr) begin // jump sub routine
+						s.regs[7] = s.pc;
+						if(t.jsr_bit == 1) begin
+							s.pc = s.pc + t.pc_offset11;
+						end else begin
+							s.pc = t.src1;
+						end
+					end else if(t.opcode == op_lea) begin // load effective address
+						s.dst_val = s.pc + t.pc_offset9;
+						s.dst_reg = t.dst;
+					end else if(t.opcode == op_trap) begin // trap
+						s.regs[7] = s.pc;
+						s.pc = t.trapvec8;
+					end else if(t.opcode == op_rti || t.opcode == op_ioe) begin
+						$display("Found opcode rti or ioe");
+						// do nothing
+					end else begin
+						$display("Invalid opcode");
 					end
 				end else begin
 					$display("%g\tUnknown Instruction %d Received!", $time, t.opcode);
@@ -235,6 +367,7 @@ package lc3_pkg;
 				foreach(cbs[i]) begin
 					cbs[i].post_tx(t, count);
 				end
+				sb.save_expected(s);
 			end
 		endtask
 		
@@ -250,10 +383,10 @@ package lc3_pkg;
 
 	
 	class Monitor #(ADDRESS_WIDTH=16);
-		virtual lc3_if#(ADDRESS_WIDTH).MON ports;
+		virtual test_if#(ADDRESS_WIDTH).TB2DUT ports;
 		//TODO: Monitor callbacks?
 		
-		function new(input virtual lc3_if#(ADDRESS_WIDTH).MON p);
+		function new(input virtual test_if#(ADDRESS_WIDTH).TB2DUT p);
 			ports = p;
 		endfunction
 		
@@ -290,8 +423,8 @@ package lc3_pkg;
 	
 	
 	class Environment #(ADDRESS_WIDTH=8);
-		virtual lc3_if#(ADDRESS_WIDTH).TB tb_ports;
-		virtual lc3_if#(ADDRESS_WIDTH).MON mon_ports;
+		virtual test_if #(ADDRESS_WIDTH).TB2DUT tb_ports;
+		virtual mem_if #(ADDRESS_WIDTH).TB2MEM dut_mem_ports;
 		Generator #(ADDRESS_WIDTH) gen;
 		Agent #(ADDRESS_WIDTH) agt;
 		Driver #(ADDRESS_WIDTH) drv;
@@ -300,9 +433,9 @@ package lc3_pkg;
 		Config cfg;
 		mailbox #(Transaction #(ADDRESS_WIDTH)) gen2agt, agt2drv;
 		
-		function new(virtual lc3_if#(ADDRESS_WIDTH).TB tp, virtual lc3_if#(ADDRESS_WIDTH).MON mp);
-			tb_ports = tp;
-			mon_ports = mp;
+		function new(virtual test_if #(ADDRESS_WIDTH).TB2DUT tbd, virtual mem_if #(ADDRESS_WIDTH).TB2MEM dutm);
+			tb_ports = tbd;
+			dut_mem_ports = dutm;
 		endfunction
 		
 		function void build();
@@ -311,12 +444,12 @@ package lc3_pkg;
 			agt2drv = new(1);
 			
 			//Initialize transactors
+			sb = new(cfg);
 			gen = new(gen2agt);
 			agt = new(gen2agt, agt2drv);
-			drv = new(agt2drv, tb_ports);
-			mon = new(mon_ports);
+			drv = new(agt2drv, tb_ports, dut_mem_ports, sb);
+			mon = new(tb_ports);
 			cfg = new();
-			sb = new(cfg);
 		endfunction
 		
 		task run();
@@ -324,6 +457,7 @@ package lc3_pkg;
 				gen.run();
 				agt.run();
 				drv.run();
+				drv.connect_signals();
 				mon.run();
 			join_any
 		endtask

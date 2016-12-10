@@ -8,15 +8,16 @@
 typedef enum {start, fetch0, fetch1, fetch2, decode, ex_ld1, ex_ld2, ex_st1, ex_st2, ex_ldi1, ex_ldi2, ex_ldi3, ex_ldi4, ex_sti1, ex_sti2, ex_sti3, ex_sti4, ex_str1, ex_str2, ex_ldr1, ex_ldr2} state_type;
 typedef enum {op_add=32'h1, op_and=32'h5, op_not=32'h9, op_br=32'h0, op_jmp=32'hC, op_jsr=32'h4, op_ld=32'h2, op_ldr=32'h6, op_lea=32'hE, op_ldi=32'hA, op_st=32'h3, op_str=32'h7, op_sti=32'hB, op_rti=32'h8, op_ioe=32'hD, op_trap=32'hF} opcode_type;
 
-module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut);
+module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0, r1, r2, r3, r4, r5, r6, r7);
 	input logic clk, reset;
 	
 	output logic [15:0] mar, mdr; 
 	input logic [15:0] memOut;
 	output logic memwe;
+	output logic n_flag, z_flag, p_flag;
+	output logic [15:0] pc, r0, r1, r2, r3, r4, r5, r6, r7;
 
 	// Signal Declarations
-	logic n_flag, z_flag, p_flag;
 	logic [15:0] ir;
 	logic [31:0] opcode; 
 	logic ir_n, ir_z, ir_p; 
@@ -298,7 +299,7 @@ endmodule
 
 module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, en_alu, regwe, 
 		en_marmux, sel_marmux, sel_eab1, en_pc, load_pc, load_ir, load_mar, load_mdr, 
-		sel_mdr, memwe, en_mdr, flagwe, ir, n_flag, z_flag, p_flag, mar, mdr, memOut);
+		sel_mdr, memwe, en_mdr, flagwe, ir, n_flag, z_flag, p_flag, mar, mdr, memOut, pc, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
 
 	//Ports
 	input logic clk, reset, en_alu, regwe, en_marmux, sel_marmux, sel_eab1, en_pc, load_pc, 
@@ -310,17 +311,17 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 	
 	output logic [15:0] mar, mdr; 
 	input logic [15:0] memOut; 
+	output logic [15:0] pc;
+	output logic [15:0] r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
 
 	//Internal Signals
 	wire [15:0] buss;
 	logic [5:0] immediate;
-	logic [15:0] pc;
 	logic [15:0] rb, ra, eab_out, marmux_out, mdr_out;
 	logic [15:0] eab_arg1, eab_arg2, eab_ir11, eab_ir9, eab_ir6;
 	logic [15:0] alu_out;
 	logic [15:0] arg_a, arg_b;
 	logic [15:0] r0_in, r1_in, r2_in, r3_in, r4_in, r5_in, r6_in, r7_in;
-	logic [15:0] r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
 	logic [15:0] marmux_ir8;
 	logic [15:0] pc_next;
 	logic [15:0] ir_next;

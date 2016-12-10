@@ -14,9 +14,15 @@ module lc3_top;
 		forever #50 clk = ~clk;
 	end
 	
-	lc3_if #(ADDRESS_WIDTH) my_if(clk);
-	lc3_tb #(ADDRESS_WIDTH) my_tb();
-	//memory my_mem(clk, my_if.MEM);
-	ammon_lc3 my_lc3(clk, my_if.DUT);
+	//Interfaces
+	mem_if #(ADDRESS_WIDTH) dut_mem_if(clk);
+	test_if tbdut_if(clk);
+	
+	// Test bench
+	lc3_tb #(ADDRESS_WIDTH) my_tb(reset);
+	memory dut_mem(clk, reset, dut_mem_if.MEM2TB);
+	
+	// DUT
+	ammon_lc3 my_lc3(clk, reset, tbdut_if.DUT2TB);
 	
 endmodule
