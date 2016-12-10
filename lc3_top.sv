@@ -20,9 +20,26 @@ module lc3_top;
 	
 	// Test bench
 	lc3_tb #(ADDRESS_WIDTH) my_tb();
-	memory dut_mem(clk, dut_mem_if.MEM2TB);
+	memory dut_mem(.clk(clk), .memWE(dut_mem_if.memwe), .memOut(dut_mem_if.memOut), .reset(dut_mem_if.reset), .mdrOut(dut_mem_if.mdr), .MARReg(dut_mem_if.mar));
 	
 	// DUT
-	ammon_lc3 my_lc3(clk, tbdut_if.DUT2TB);
+	ammon_lc3 my_lc3(.clk(tbdut_if.clk), 
+        .reset(tbdut_if.reset), 
+        .memwe(tbdut_if.memwe), 
+        .mdr(tbdut_if.mdr), 
+        .mar(tbdut_if.mar), 
+        .memOut(tbdut_if.memOut), 
+        .pc(tbdut_if.pc), 
+        .n_flag(tbdut_if.n_flag), 
+        .z_flag(tbdut_if.z_flag), 
+        .p_flag(tbdut_if.p_flag), 
+        .r0_out(tbdut_if.r0), 
+        .r1_out(tbdut_if.r1), 
+        .r2_out(tbdut_if.r2), 
+        .r3_out(tbdut_if.r3), 
+        .r4_out(tbdut_if.r4), 
+        .r5_out(tbdut_if.r5), 
+        .r6_out(tbdut_if.r6), 
+        .r7_out(tbdut_if.r7));
 	
 endmodule

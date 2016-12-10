@@ -517,15 +517,15 @@ package lc3_pkg;
 				end else begin
 					//Illegal opcode
 				end
-				s.pc = tb_ports.pc;
-				s.regs[0] = tb_ports.r0;
-				s.regs[1] = tb_ports.r1;
-				s.regs[2] = tb_ports.r2;
-				s.regs[3] = tb_ports.r3;
-				s.regs[4] = tb_ports.r4;
-				s.regs[5] = tb_ports.r5;
-				s.regs[6] = tb_ports.r6;
-				s.regs[7] = tb_ports.r7;
+				s.pc = ports.pc;
+				s.regs[0] = ports.r0;
+				s.regs[1] = ports.r1;
+				s.regs[2] = ports.r2;
+				s.regs[3] = ports.r3;
+				s.regs[4] = ports.r4;
+				s.regs[5] = ports.r5;
+				s.regs[6] = ports.r6;
+				s.regs[7] = ports.r7;
 				sb.check_actual(s);
 			end
 		endtask
@@ -636,6 +636,7 @@ package lc3_pkg;
 	   endfunction
 
 	   static function void register(Wrapper c);
+          $display("Registering class: %s", c.get_type_name());
 		  type_names[c.get_type_name()] = c;
 	   endfunction
 
@@ -699,7 +700,7 @@ package lc3_pkg;
 		endfunction
 		
 		virtual task run_test();
-			tbdut_if = $root.lc3_top.dut_mem_if.TB2DUT;
+			tbdut_if = $root.lc3_top.tbdut_if.TB2DUT;
 			dutmem_if = $root.lc3_top.dut_mem_if.TB2MEM;
 			env = new(tbdut_if, dutmem_if);
 			env.build();
