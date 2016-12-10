@@ -19,10 +19,10 @@ module lc3_top;
 	test_if tbdut_if(clk);
 	
 	// Test bench
-	lc3_tb #(ADDRESS_WIDTH) my_tb(reset);
-	memory dut_mem(clk, reset, dut_mem_if.MEM2TB);
+	lc3_tb #(ADDRESS_WIDTH) my_tb();
+	memory dut_mem(clk, dut_mem_if.MEM2TB);
 	
 	// DUT
-	ammon_lc3 my_lc3(clk, reset, tbdut_if.DUT2TB);
+	ammon_lc3 my_lc3(clk, tbdut_if.DUT2TB);
 	
 endmodule
