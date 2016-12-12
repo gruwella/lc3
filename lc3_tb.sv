@@ -3,7 +3,7 @@
 
 `default_nettype none
 `timescale 1ns / 100ps
-program automatic lc3_tb #(ADDRESS_WIDTH=8) ();
+program automatic lc3_tb();
 	
 	import lc3_pkg::*;
 	

@@ -11,9 +11,15 @@
  end while (0)
 
 package lc3_pkg;
+	typedef class Config;
+
+		//LC3 Opcodes
 	typedef enum {op_add=32'h1, op_and=32'h5, op_not=32'h9, op_br=32'h0, op_jmp=32'hC, op_jsr=32'h4, op_ld=32'h2, op_ldr=32'h6, op_lea=32'hE, op_ldi=32'hA, op_st=32'h3, op_str=32'h7, op_sti=32'hB, op_rti=32'h8, op_ioe=32'hD, op_trap=32'hF} opcode_type;
 	
-	class Transaction #(ADDRESS_WIDTH=8);
+	// LC3 States
+	typedef enum {start, fetch0, fetch1, fetch2, decode, ex_ld1, ex_ld2, ex_st1, ex_st2, ex_ldi1, ex_ldi2, ex_ldi3, ex_ldi4, ex_sti1, ex_sti2, ex_sti3, ex_sti4, ex_str1, ex_str2, ex_ldr1, ex_ldr2} state_type;
+	
+	class Transaction;
 	
 		opcode_type opcode;
 		bit [2:0] src1, src2, dst;
@@ -70,17 +76,20 @@ package lc3_pkg;
 	endclass: Transaction
 	
 	
-	class Generator #(ADDRESS_WIDTH=8);
+	class Generator;
 	
-		mailbox #(Transaction #(ADDRESS_WIDTH)) gen2agt;
-		Transaction #(ADDRESS_WIDTH) t;
+		mailbox #(Transaction) gen2agt;
+		Transaction t;
+		Config cfg;
 		
-		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) g2a);
+		function new (mailbox #(Transaction) g2a, Config c);
 			gen2agt = g2a;
+			cfg = c;
 		endfunction
 		
 		task run;
-			while(1) begin
+			for(integer i = 0; i < cfg.num_instructions; i++) begin
+				$display("Creating new transaction in Generator");
 				t = new();
 				`SV_RAND_CHECK(t.randomize());
 				gen2agt.put(t);
@@ -90,12 +99,12 @@ package lc3_pkg;
 	endclass: Generator
 	
 	
-	class Agent #(ADDRESS_WIDTH=8);
+	class Agent;
 	
-		mailbox #(Transaction #(ADDRESS_WIDTH)) gen2agt, agt2drv;
-		Transaction #(ADDRESS_WIDTH) t;
+		mailbox #(Transaction) gen2agt, agt2drv;
+		Transaction t;
 		
-		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) g2a, a2d);
+		function new (mailbox #(Transaction) g2a, a2d);
 			gen2agt = g2a;
 			agt2drv = a2d;
 		endfunction
@@ -104,22 +113,23 @@ package lc3_pkg;
 			while(1) begin
 				gen2agt.get(t);
 				agt2drv.put(t);
+				$display("Passed one transaction from Generator to Driver");
 			end
 		endtask
 		
 	endclass: Agent	
 	
-	virtual class Driver_cbs #(ADDRESS_WIDTH=8);
-		virtual task pre_tx(ref Transaction #(ADDRESS_WIDTH) t);
+	virtual class Driver_cbs;
+		virtual task pre_tx(ref Transaction t);
 		// By default, callback does nothing
 		endtask
-		virtual task post_tx(ref Transaction #(ADDRESS_WIDTH) t, integer count);
+		virtual task post_tx(ref Transaction t, integer count);
 		// By default, callback does nothing
 		endtask
 	endclass
 	
-	class Driver_cbs_coverage #(ADDRESS_WIDTH=8) extends Driver_cbs #(ADDRESS_WIDTH);
-		Transaction #(ADDRESS_WIDTH) sample_t;
+	class Driver_cbs_coverage extends Driver_cbs;
+		Transaction sample_t;
 		covergroup CovOp;
 			option.per_instance = 1;
 			// Test that all opcodes have been used
@@ -137,9 +147,63 @@ package lc3_pkg;
 			destination: coverpoint sample_t.instruction[11:9]{
 				option.weight = 0;
 			}
+			branch_offset: coverpoint sample_t.pc_offset9{
+				option.weight = 0;
+				wildcard bins positive = {9'b0????????};
+				wildcard bins negative = {9'b1????????};
+			}
+			branch_condition: coverpoint sample_t.instruction[11:9]{
+				option.weight = 0;
+			}
+			reset: coverpoint sample_t.rst{
+				option.weight = 0;
+			}
+			reset_cycle: coverpoint sample_t.rst_cycle{
+				option.weight = 0;
+			}
+			// Ensures that each opcode is followed and preceded by all other opcodes
+			diff_seq_test: coverpoint sample_t.opcode{
+				bins opcode_seq[] = (op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap => op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap);
+			}
+			// Ensures that each opcode is followed and preceded by all other opcodes
+			same_seq_test: coverpoint sample_t.opcode{
+				bins same0 = (op_add => op_add);
+				bins same1 = (op_and => op_and);
+				bins same2 = (op_not => op_not);
+				bins same3 = (op_br => op_br);
+				bins same4 = (op_jmp => op_jmp);
+				bins same5 = (op_jsr => op_jsr);
+				bins same6 = (op_ld => op_ld);
+				bins same7 = (op_ldr => op_ldr);
+				bins same8 = (op_lea => op_lea);
+				bins same9 = (op_ldi => op_ldi);
+				bins same10 = (op_st => op_st);
+				bins same11 = (op_str => op_str);
+				bins same12 = (op_sti => op_sti);
+				bins same13 = (op_rti => op_rti);
+				bins same14 = (op_ioe => op_ioe);
+				bins same15 = (op_trap => op_trap);
+			}
 			
 			//op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap
-			
+			cross opcode, reset, reset_cycle{
+				option.weight = 2;
+				bins rst_ld = binsof(opcode) intersect{op_ld};
+				bins cycle = binsof(reset_cycle) intersect{[1:8]};
+				bins rst_high = binsof(reset) intersect{1'b1};
+			}
+			cross opcode, reset{
+				option.weight = 2;
+				bins rst_all_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
+			}
+			cross branch_condition, opcode{
+				option.weight = 2;
+				bins branching_nzp = binsof(opcode) intersect{op_br};
+			}
+			cross branch_offset, opcode{
+				option.weight = 2;
+				bins branching_pos_neg = binsof(opcode) intersect{op_br};
+			}
 			// Test that all opcodes with a source register have been tested with all possible source registers
 			cross opcode, source11_9{
 				option.weight = 2;
@@ -167,12 +231,12 @@ package lc3_pkg;
 			//TODO: make more cover groups
 		endgroup
 		
-		virtual task pre_tx(ref Transaction #(ADDRESS_WIDTH) t);
+		virtual task pre_tx(ref Transaction t);
 			sample_t = t;
 			CovOp.sample;
 		endtask
 		
-		virtual task post_tx(ref Transaction #(ADDRESS_WIDTH) t, integer count);
+		virtual task post_tx(ref Transaction t, integer count);
 			if($get_coverage() == 100)begin
 				$display("%g\tTest Coverage reached 100 percent!  Exiting test after %d instructions...", $time, count);
 				$finish;
@@ -198,18 +262,18 @@ package lc3_pkg;
 	
 	typedef class Scoreboard;
 	
-	class Driver #(ADDRESS_WIDTH=8);
-		virtual test_if #(ADDRESS_WIDTH).TB2DUT tb_ports;
-		virtual mem_if #(ADDRESS_WIDTH).TB2MEM dut_mem_ports;
-		mailbox #(Transaction #(ADDRESS_WIDTH)) agt2drv;
-		Transaction #(ADDRESS_WIDTH) t;
-		Driver_cbs #(ADDRESS_WIDTH) cbs[$];
+	class Driver;
+		virtual test_if.TB2DUT tb_ports;
+		virtual mem_if.TB2MEM dut_mem_ports;
+		mailbox #(Transaction) agt2drv;
+		Transaction t;
+		Driver_cbs cbs[$];
 		integer count;
 		State s;
 		bit [15:0] my_memory [0:255];
 		Scoreboard sb;
 		
-		function new (mailbox #(Transaction #(ADDRESS_WIDTH)) a2d, virtual test_if #(ADDRESS_WIDTH).TB2DUT tbd, virtual mem_if #(ADDRESS_WIDTH).TB2MEM dutm, Scoreboard sb);
+		function new (mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm, Scoreboard sb);
 			// Ports
 			tb_ports = tbd;
 			dut_mem_ports = dutm;
@@ -225,27 +289,35 @@ package lc3_pkg;
 		
 		task connect_signals;
 			forever begin
-				dut_mem_ports.memwe <= tb_ports.memwe;
-				dut_mem_ports.mdr <= tb_ports.mdr;
-				dut_mem_ports.mar <= tb_ports.mar;
-				@dut_mem_ports.clk; //TODO: make sure this is needed
+				dut_mem_ports.memwe <= tb_ports.cb.memwe;
+				dut_mem_ports.mdr <= tb_ports.cb.mdr;
+				dut_mem_ports.mar <= tb_ports.cb.mar;
+				@tb_ports.cb; //TODO: make sure this is needed
 			end
 		endtask
 		
 		task run;
+			$display("Starting Driver run task");
 			// Reset the DUT
 			tb_ports.reset <= 1;
+			$display("1");
 			dut_mem_ports.reset <= 1;
+			$display("2");
 			repeat (3) @tb_ports.cb;
+			$display("3");
 			tb_ports.reset <= 0;
+			$display("4");
 			dut_mem_ports.reset <= 0;
-			tb_ports.memOut <= 0;
+			$display("5");
+			tb_ports.cb.memOut <= 0;
+			$display("6");
 			//@tb_ports.cb;
 			
 			// Begin driving instructions
 			while(1) begin
 				s = new();
 				agt2drv.get(t);
+				$display("Starting new transaction in Driver");
 				foreach(cbs[i]) begin
 					cbs[i].pre_tx(t);
 				end
@@ -279,7 +351,7 @@ package lc3_pkg;
 					//@tb_ports.cb;
 					continue;
 				end
-				tb_ports.memOut <= t.instruction;
+				tb_ports.cb.memOut <= t.instruction;
 				@tb_ports.cb;
 				if(t.rst == 1 && t.rst_cycle == 4) begin
 					tb_ports.reset <= 1;
@@ -290,16 +362,16 @@ package lc3_pkg;
 					//@tb_ports.cb;
 					continue;
 				end
-				tb_ports.memOut <= dut_mem_ports.memOut;
-				s.pc = tb_ports.pc;
-				s.regs[0] = tb_ports.r0;
-				s.regs[1] = tb_ports.r1;
-				s.regs[2] = tb_ports.r2;
-				s.regs[3] = tb_ports.r3;
-				s.regs[4] = tb_ports.r4;
-				s.regs[5] = tb_ports.r5;
-				s.regs[6] = tb_ports.r6;
-				s.regs[7] = tb_ports.r7;
+				tb_ports.cb.memOut <= dut_mem_ports.memOut;
+				s.pc = tb_ports.cb.pc;
+				s.regs[0] = tb_ports.cb.r0;
+				s.regs[1] = tb_ports.cb.r1;
+				s.regs[2] = tb_ports.cb.r2;
+				s.regs[3] = tb_ports.cb.r3;
+				s.regs[4] = tb_ports.cb.r4;
+				s.regs[5] = tb_ports.cb.r5;
+				s.regs[6] = tb_ports.cb.r6;
+				s.regs[7] = tb_ports.cb.r7;
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
@@ -415,7 +487,7 @@ package lc3_pkg;
 /* 						s.dst_val = s.regs[t.dst];
 						s.dst_reg = t.dst; */
 					end else if(t.opcode == op_br) begin //branch instruction
-						if((t.n_flag & tb_ports.n_flag) || (t.z_flag & tb_ports.z_flag) || (t.p_flag & tb_ports.p_flag)) begin
+						if((t.n_flag & tb_ports.cb.n_flag) || (t.z_flag & tb_ports.cb.z_flag) || (t.p_flag & tb_ports.cb.p_flag)) begin
 							s.pc = s.pc + t.pc_offset9;
 						end
 					end else if(t.opcode == op_jmp) begin // jump
@@ -456,20 +528,22 @@ package lc3_pkg;
 	
 	class Config;
 		integer errors;
-		function new();
+		integer num_instructions;
+		function new(integer ni=10);
 			errors = 0;
+			num_instructions = ni;
 		endfunction
 	endclass: Config
 
 	
-	class Monitor #(ADDRESS_WIDTH=16);
-		virtual test_if#(ADDRESS_WIDTH).TB2DUT ports;
+	class Monitor;
+		virtual test_if.TB2DUT ports;
 		//TODO: Monitor callbacks?
 		State s;
 		Scoreboard sb;
-		Transaction #(ADDRESS_WIDTH) t;
+		Transaction t;
 		
-		function new(input virtual test_if#(ADDRESS_WIDTH).TB2DUT p, Scoreboard scb);
+		function new(input virtual test_if.TB2DUT p, Scoreboard scb);
 			ports = p;
 			sb = scb;
 		endfunction
@@ -517,15 +591,15 @@ package lc3_pkg;
 				end else begin
 					//Illegal opcode
 				end
-				s.pc = ports.pc;
-				s.regs[0] = ports.r0;
-				s.regs[1] = ports.r1;
-				s.regs[2] = ports.r2;
-				s.regs[3] = ports.r3;
-				s.regs[4] = ports.r4;
-				s.regs[5] = ports.r5;
-				s.regs[6] = ports.r6;
-				s.regs[7] = ports.r7;
+				s.pc = ports.cb.pc;
+				s.regs[0] = ports.cb.r0;
+				s.regs[1] = ports.cb.r1;
+				s.regs[2] = ports.cb.r2;
+				s.regs[3] = ports.cb.r3;
+				s.regs[4] = ports.cb.r4;
+				s.regs[5] = ports.cb.r5;
+				s.regs[6] = ports.cb.r6;
+				s.regs[7] = ports.cb.r7;
 				sb.check_actual(s);
 			end
 		endtask
@@ -569,18 +643,18 @@ package lc3_pkg;
 	endclass: Scoreboard
 	
 	
-	class Environment #(ADDRESS_WIDTH=8);
-		virtual test_if #(ADDRESS_WIDTH).TB2DUT tb_ports;
-		virtual mem_if #(ADDRESS_WIDTH).TB2MEM dut_mem_ports;
-		Generator #(ADDRESS_WIDTH) gen;
-		Agent #(ADDRESS_WIDTH) agt;
-		Driver #(ADDRESS_WIDTH) drv;
-		Monitor #(ADDRESS_WIDTH) mon;
+	class Environment;
+		virtual test_if.TB2DUT tb_ports;
+		virtual mem_if.TB2MEM dut_mem_ports;
+		Generator gen;
+		Agent agt;
+		Driver drv;
+		Monitor mon;
 		Scoreboard sb;
 		Config cfg;
-		mailbox #(Transaction #(ADDRESS_WIDTH)) gen2agt, agt2drv;
+		mailbox #(Transaction ) gen2agt, agt2drv;
 		
-		function new(virtual test_if #(ADDRESS_WIDTH).TB2DUT tbd, virtual mem_if #(ADDRESS_WIDTH).TB2MEM dutm);
+		function new(virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm);
 			tb_ports = tbd;
 			dut_mem_ports = dutm;
 		endfunction
@@ -591,12 +665,12 @@ package lc3_pkg;
 			agt2drv = new(1);
 			
 			//Initialize transactors
+			cfg = new();
 			sb = new(cfg);
-			gen = new(gen2agt);
+			gen = new(gen2agt, cfg);
 			agt = new(gen2agt, agt2drv);
 			drv = new(agt2drv, tb_ports, dut_mem_ports, sb);
 			mon = new(tb_ports, sb);
-			cfg = new();
 		endfunction
 		
 		task run();
@@ -604,7 +678,7 @@ package lc3_pkg;
 				gen.run();
 				agt.run();
 				drv.run();
-				drv.connect_signals();
+				//drv.connect_signals();
 				mon.run();
 			join_any
 		endtask
@@ -685,30 +759,33 @@ package lc3_pkg;
 
 	endclass:Registry
 	
-	class TestBasic #(ADDRESS_WIDTH=16) extends Component;
+	class TestBasic extends Component;
 		typedef Registry #(TestBasic, "TestBasic") type_id;
-		Environment #(ADDRESS_WIDTH) env;
-		Driver_cbs_coverage #(ADDRESS_WIDTH) dcv;
-		virtual test_if #(ADDRESS_WIDTH).TB2DUT tbdut_if;
-		virtual mem_if #(ADDRESS_WIDTH).TB2MEM dutmem_if;
+		Environment env;
+		Driver_cbs_coverage dcv;
+		virtual test_if.TB2DUT tbdut_if;
+		virtual mem_if.TB2MEM dutmem_if;
 		string name;
 	   
 		function new(string n);
 			name = n;
 			$display("%m");
-			env = new();
 		endfunction
 		
 		virtual task run_test();
+			$display("Starting TestBasic run_test");
 			tbdut_if = $root.lc3_top.tbdut_if.TB2DUT;
 			dutmem_if = $root.lc3_top.dut_mem_if.TB2MEM;
 			env = new(tbdut_if, dutmem_if);
 			env.build();
+			$display("Built Environment in TestBasic");
+			env.cfg.num_instructions = 10;
 			begin
 				dcv = new();
 				env.drv.cbs.push_back(dcv);
 			end
 			env.run();
+			$display("Finished Running in TestBasic");
 			env.wrap_up();
 		endtask
 	endclass: TestBasic

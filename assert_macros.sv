@@ -2,7 +2,7 @@
 `define ASSERT_MACROS
 
 `define assert_clk_xrst(arg) \
-	assert property (@(posedge clk) disable iff (!rst_n) arg)
+	assert property (@(posedge clk) disable iff (reset) arg)
 	
 `define assert_clk(arg) \
 	assert property (@(posedge clk) arg)
