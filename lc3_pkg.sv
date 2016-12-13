@@ -88,8 +88,9 @@ package lc3_pkg;
 		endfunction
 		
 		task run;
-			for(integer i = 0; i < cfg.num_instructions; i++) begin
-				$display("Creating new transaction in Generator");
+			//for(integer i = 0; i < cfg.num_instructions; i++) begin
+			while(1) begin
+				//$display("Creating new transaction in Generator");
 				t = new();
 				`SV_RAND_CHECK(t.randomize());
 				gen2agt.put(t);
@@ -114,7 +115,7 @@ package lc3_pkg;
 			while(1) begin
 				gen2agt.get(t);
 				agt2drv.put(t);
-				$display("Passed one transaction from Generator to Driver");
+				//$display("Passed one transaction from Generator to Driver");
 			end
 		endtask
 		
@@ -286,7 +287,7 @@ package lc3_pkg;
 		Scoreboard sb;
 		mailbox #(State) driver_states;
 		
-		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, ref Scoreboard sb, mailbox #(State) d);
+		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, input Scoreboard sb, mailbox #(State) d);
 			// Ports
 			tb_ports = tbd;
 			
@@ -297,12 +298,12 @@ package lc3_pkg;
 			count = 0;
 			
 			driver_states = d;
-			sb = this.sb;
+			this.sb = sb;
 			s = new();
 		endfunction
 		
 		task run;
-			$display("Starting Driver run task");
+			//$display("Starting Driver run task");
 			// Reset the DUT
 			tb_ports.reset <= 1;
 			repeat (3) @tb_ports.clk;
@@ -310,14 +311,15 @@ package lc3_pkg;
 			
 			// Begin driving instructions
 			while(1) begin
-				
+				if(sb.cfg.done == 1) break;
 				s = new();
 				agt2drv.get(t);
-				$display("Starting new transaction in Driver");
+				//$display("Starting new transaction in Driver");
 				foreach(cbs[i]) begin
 					cbs[i].pre_tx(t);
 				end
 				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
+				$display("New Instruction: 0x%h", t.instruction[15:12]);
 				@tb_ports.clk;
 				if(t.rst == 1 && t.rst_cycle == 1) begin
 					tb_ports.reset <= 1;
@@ -496,8 +498,10 @@ package lc3_pkg;
 	class Config;
 		integer errors;
 		integer num_instructions;
+		integer done;
 		function new(integer ni=10);
 			errors = 0;
+			done = 0;
 			num_instructions = ni;
 		endfunction
 	endclass: Config
@@ -510,13 +514,14 @@ package lc3_pkg;
 		Scoreboard sb;
 		Transaction t;
 		
-		function new(input virtual test_if.TB2DUT p, ref Scoreboard scb);
+		function new(input virtual test_if.TB2DUT p, input Scoreboard scb);
 			ports = p;
 			sb = scb;
 		endfunction
 		
 		task run();
 			forever begin
+				if(sb.cfg.done == 1) break;
 				@ports.clk;
 				if(ports.reset == 1) continue;
 				@ports.clk;
@@ -576,17 +581,19 @@ package lc3_pkg;
 	
 	class Scoreboard;
 		Config cfg;
-		integer count;
 		integer before_errors;
 		mailbox #(State) driver_states;
+		State e;
+		integer count;
+		integer myint;
 		
 		function new(ref Config c, mailbox #(State) d);
 			driver_states = d;
 			cfg = c;
+			count = 0;
 		endfunction
 		
 		task check_actual(ref State a);
-			State e;
 			driver_states.get(e);
 			before_errors = cfg.errors;
 			if(a.pc != e.pc) begin
@@ -605,9 +612,13 @@ package lc3_pkg;
 						$display("%g\tError: R%d does not match!  Expected: 0x%h  Actual: 0x%h", $time, i, e.regs[i], a.regs[i]);
 					end
 				end
-				if(before_errors < cfg.errors) begin
-					$display("%g\tSuccess: expected and actual values match!", $time);
-				end
+			end
+			if(before_errors == cfg.errors) begin
+				$display("%g\tSuccess: expected and actual values match!", $time);
+			end
+			count++;
+			if(count >= cfg.num_instructions) begin
+				cfg.done = 1;
 			end
 		endtask
 	endclass: Scoreboard
@@ -637,6 +648,7 @@ package lc3_pkg;
 			//Initialize transactors
 			cfg = new();
 			sb = new(cfg, driver_states);
+			$display("My Integer is: %d", sb.myint);
 			gen = new(gen2agt, cfg);
 			agt = new(gen2agt, agt2drv);
 			drv = new(agt2drv, tb_ports, sb, driver_states);
