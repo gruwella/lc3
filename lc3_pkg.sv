@@ -360,7 +360,7 @@ package lc3_pkg;
 					//@tb_ports.cb;
 					continue;
 				end
-				tb_ports.cb.memOut <= dut_mem_ports.memOut;
+				//tb_ports.cb.memOut <= dut_mem_ports.memOut;
 				s.pc = tb_ports.cb.pc;
 				s.regs[0] = tb_ports.cb.r0;
 				s.regs[1] = tb_ports.cb.r1;
@@ -679,6 +679,7 @@ package lc3_pkg;
 				drv.connect_signals();
 				//mon.run();
 			join_any
+            $display("Finishing Env.run");
 		endtask
 		
 		function void wrap_up();
