@@ -609,7 +609,7 @@ package lc3_pkg;
 					$display("%g\tSuccess: expected and actual values match!", $time);
 				end
 			end
-		endfunction
+		endtask
 	endclass: Scoreboard
 	
 	
