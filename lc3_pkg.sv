@@ -315,7 +315,7 @@ package lc3_pkg;
 			//$display("Starting Driver run task");
 			// Reset the DUT
 			tb_ports.reset <= 1;
-			repeat (3) @tb_ports.clk;
+			repeat (3) @(posedge tb_ports.clk);
 			tb_ports.reset <= 0;
 			
 			// Begin driving instructions
@@ -329,34 +329,34 @@ package lc3_pkg;
 				end
 				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
 				//$display("New Instruction: 0x%h", t.instruction[15:12]);
-				@tb_ports.clk;
+				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 1) begin
 					tb_ports.reset <= 1;
-					@tb_ports.clk;
+					@(posedge tb_ports.clk);
 					tb_ports.reset <= 0;
 					//@tb_ports.clk;
 					continue;
 				end
-				@tb_ports.clk;
+				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 2) begin
 					tb_ports.reset <= 1;
-					@tb_ports.clk;
+					@(posedge tb_ports.clk);
 					tb_ports.reset <= 0;
 					//@tb_ports.clk;
 					continue;
 				end
-				@tb_ports.clk;
+				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 4) begin
 					tb_ports.reset <= 1;
-					@tb_ports.clk;
+					@(posedge tb_ports.clk);
 					tb_ports.reset <= 0;
 					//@tb_ports.clk;
 					continue;
 				end
-				@tb_ports.clk;
+				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 4) begin
 					tb_ports.reset <= 1;
-					@tb_ports.clk;
+					@(posedge tb_ports.clk);
 					tb_ports.reset <= 0;
 					//@tb_ports.clk;
 					continue;
@@ -385,34 +385,34 @@ package lc3_pkg;
 /* 						s.dst_val = my_memory[s.src1 + t.offset6];
 						s.dst_reg = t.dst; */
 					end
-					@tb_ports.clk;
+					@(posedge tb_ports.clk);
 					if(t.rst == 1 && t.rst_cycle == 5) begin
 						tb_ports.reset <= 1;
-						@tb_ports.clk;
+						@(posedge tb_ports.clk);
 						tb_ports.reset <= 0;
 						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.clk;					
+					@(posedge tb_ports.clk);				
 					if(t.rst == 1 && t.rst_cycle == 6) begin
 						tb_ports.reset <= 1;
-						@tb_ports.clk;
+						@(posedge tb_ports.clk);
 						tb_ports.reset <= 0;
 						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.clk;					
+					@(posedge tb_ports.clk);				
 					if(t.rst == 1 && t.rst_cycle == 7) begin
 						tb_ports.reset <= 1;
-						@tb_ports.clk;
+						@(posedge tb_ports.clk);
 						tb_ports.reset <= 0;
 						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.clk;					
+					@(posedge tb_ports.clk);			
 					if(t.rst == 1 && t.rst_cycle == 8) begin
 						tb_ports.reset <= 1;
-						@tb_ports.clk;
+						@(posedge tb_ports.clk);
 						tb_ports.reset <= 0;
 						//@tb_ports.clk;
 						continue;
@@ -431,18 +431,18 @@ package lc3_pkg;
 /* 						s.dst_val = my_memory[s.pc + t.pc_offset9];
 						s.dst_reg = t.dst; */
 					end
-					@tb_ports.clk;
+					@(posedge tb_ports.clk);
 					if(t.rst == 1 && t.rst_cycle == 5) begin
 						tb_ports.reset <= 1;
-						@tb_ports.clk;
+						@(posedge tb_ports.clk);
 						tb_ports.reset <= 0;
 						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.clk;					
+					@(posedge tb_ports.clk);				
 					if(t.rst == 1 && t.rst_cycle == 6) begin
 						tb_ports.reset <= 1;
-						@tb_ports.clk;
+						@(posedge tb_ports.clk);
 						tb_ports.reset <= 0;
 						//@tb_ports.clk;
 						continue;
@@ -540,34 +540,34 @@ package lc3_pkg;
 		task run();
 			forever begin
 				if(sb.cfg.done == 1) break;
-				@ports.clk;
+				@(posedge ports.clk);
 				if(ports.reset == 1) continue;
-				@ports.clk;
+				@(posedge ports.clk);
 				if(ports.reset == 1) continue;
-				@ports.clk;
+				@(posedge ports.clk);
 				if(ports.reset == 1) continue;
-				@ports.clk;
+				@(posedge ports.clk);
 				if(ports.reset == 1) continue;
 				t = new($root.lc3_top.my_lc3.ir);
 				s = new();
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(ports.reset == 1) continue;
-					@ports.clk;
+					@(posedge ports.clk);
 					if(ports.reset == 1) continue;
-					@ports.clk;
+					@(posedge ports.clk);
 					if(ports.reset == 1) continue;
-					@ports.clk;
+					@(posedge ports.clk);
 					if(ports.reset == 1) continue;
-					@ports.clk;
+					@(posedge ports.clk);
 					if(t.opcode == op_sti) begin
 						s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end
 				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
 					if(ports.reset == 1) continue;
-					@ports.clk;
+					@(posedge ports.clk);
 					if(ports.reset == 1) continue;
-					@ports.clk;
+					@(posedge ports.clk);
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
