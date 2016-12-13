@@ -300,17 +300,11 @@ package lc3_pkg;
 			$display("Starting Driver run task");
 			// Reset the DUT
 			tb_ports.reset <= 1;
-			$display("1");
 			dut_mem_ports.reset <= 1;
-			$display("2");
 			repeat (3) @tb_ports.cb;
-			$display("3");
 			tb_ports.reset <= 0;
-			$display("4");
 			dut_mem_ports.reset <= 0;
-			$display("5");
 			tb_ports.cb.memOut <= 0;
-			$display("6");
 			//@tb_ports.cb;
 			
 			// Begin driving instructions
