@@ -299,6 +299,7 @@ package lc3_pkg;
 			count = 0;
 			
 			sb = this.sb;
+      s = new();
 		endfunction
 		
 		task connect_signals;
@@ -349,16 +350,16 @@ package lc3_pkg;
 					//@tb_ports.cb;
 					continue;
 				end
-				@tb_ports.cb;
-				if(t.rst == 1 && t.rst_cycle == 3) begin
-					tb_ports.reset <= 1;
-					dut_mem_ports.reset <= 1;
-					@tb_ports.cb;
-					tb_ports.reset <= 0;
-					dut_mem_ports.reset <= 0;
-					//@tb_ports.cb;
-					continue;
-				end
+//				@tb_ports.cb;
+//				if(t.rst == 1 && t.rst_cycle == 3) begin
+//					tb_ports.reset <= 1;
+//					dut_mem_ports.reset <= 1;
+//					@tb_ports.cb;
+//					tb_ports.reset <= 0;
+//					dut_mem_ports.reset <= 0;
+//					//@tb_ports.cb;
+//					continue;
+//				end
 				tb_ports.cb.memOut <= t.instruction;
 				@tb_ports.cb;
 				if(t.rst == 1 && t.rst_cycle == 4) begin
@@ -526,7 +527,7 @@ package lc3_pkg;
 				foreach(cbs[i]) begin
 					cbs[i].post_tx(t, count);
 				end
-				sb.save_expected(s);
+				//sb.save_expected(s);
 				count++;
 			end
 		endtask
@@ -624,7 +625,7 @@ package lc3_pkg;
 			cfg = c;
 		endfunction
 		
-		function void save_expected(input State s);
+		function void save_expected(ref State s);
 			expected.push_back(s);
 		endfunction
 		

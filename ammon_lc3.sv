@@ -443,7 +443,7 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 	tristate_driver mdr_tsd (mdr, buss, en_mdr);
 
 	//Memory
-	memory mymem(memOut, clk, reset, memwe, mdr, mar);
+	//memory mymem(memOut, clk, reset, memwe, mdr, mar);
   
 	MAR MAR0(buss, clk, reset, load_mar, mar);	  
 	MDR MDR0(buss, memOut, sel_mdr, clk, reset, load_mdr, mdr);
