@@ -317,7 +317,7 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 	//Internal Signals
 	wire [15:0] buss;
 	logic [5:0] immediate;
-	logic [15:0] rb, ra, eab_out, marmux_out, mdr_out;
+	logic [15:0] rb, ra, eab_out, marmux_out;
 	logic [15:0] eab_arg1, eab_arg2, eab_ir11, eab_ir9, eab_ir6;
 	logic [15:0] alu_out;
 	logic [15:0] arg_a, arg_b;
@@ -440,10 +440,10 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 	tristate_driver pc_tsd (pc, buss, en_pc);
 	tristate_driver marmux_tsd (marmux_out, buss, en_marmux);
 	tristate_driver alu_tsd (alu_out, buss, en_alu);
-	tristate_driver mdr_tsd (mdr_out, buss, en_mdr);
+	tristate_driver mdr_tsd (mdr, buss, en_mdr);
 
 	//Memory
-	memory mymem(mdr_out, clk, reset, memwe, mdr, mar);
+	memory mymem(memOut, clk, reset, memwe, mdr, mar);
   
 	MAR MAR0(buss, clk, reset, load_mar, mar);	  
 	MDR MDR0(buss, memOut, sel_mdr, clk, reset, load_mdr, mdr);
