@@ -5,7 +5,7 @@
 `timescale 1ns / 100ps
 module lc3_top;
 
-	bit clk, reset;
+	bit clk;
 	
 	// Clock generator
 	initial begin
@@ -14,12 +14,13 @@ module lc3_top;
 	end
 	
 	//Interfaces
-	mem_if dut_mem_if(clk);
+	//mem_if dut_mem_if(clk);
 	test_if tbdut_if(clk);
 	
 	// Test bench
 	lc3_tb my_tb();
-	memory dut_mem(.clk(clk), .memWE(dut_mem_if.memwe), .memOut(dut_mem_if.memOut), .reset(dut_mem_if.reset), .mdrOut(dut_mem_if.mdr), .MARReg(dut_mem_if.mar));
+	//memory dut_mem(.clk(clk), .memWE(dut_mem_if.memwe), .memOut(dut_mem_if.memOut), .reset(dut_mem_if.reset), .mdrOut(dut_mem_if.mdr), .MARReg(dut_mem_if.mar));
+	memory dut_mem(.clk(clk), .memWE(tbdut_if.memwe), .memOut(tbdut_if.memOut), .reset(tbdut_if.reset), .mdrOut(tbdut_if.mdr), .MARReg(tbdut_if.mar));
 	
 	// DUT
 	ammon_lc3 my_lc3(.clk(tbdut_if.clk),

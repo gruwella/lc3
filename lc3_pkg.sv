@@ -276,7 +276,6 @@ package lc3_pkg;
 	
 	class Driver;
 		virtual test_if.TB2DUT tb_ports;
-		virtual mem_if.TB2MEM dut_mem_ports;
 		mailbox #(Transaction) agt2drv;
 		Transaction t;
 		Driver_cbs cbs[$];
@@ -286,10 +285,9 @@ package lc3_pkg;
 		Scoreboard sb;
 		mailbox #(State) driver_states;
 		
-		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm, ref Scoreboard sb, mailbox #(State) d);
+		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, ref Scoreboard sb, mailbox #(State) d);
 			// Ports
 			tb_ports = tbd;
-			dut_mem_ports = dutm;
 			
 			// Mailbox
 			agt2drv = a2d;
@@ -302,74 +300,56 @@ package lc3_pkg;
 			s = new();
 		endfunction
 		
-		task connect_signals;
-			forever begin
-				dut_mem_ports.memwe <= tb_ports.cb.memwe;
-				dut_mem_ports.mdr <= tb_ports.cb.mdr;
-				dut_mem_ports.mar <= tb_ports.cb.mar;
-				@tb_ports.cb; //TODO: make sure this is needed
-			end
-		endtask
-		
 		task run;
 			$display("Starting Driver run task");
 			// Reset the DUT
 			tb_ports.reset <= 1;
-			dut_mem_ports.reset <= 1;
-			repeat (3) @tb_ports.cb;
+			repeat (3) @tb_ports.clk;
 			tb_ports.reset <= 0;
-			dut_mem_ports.reset <= 0;
-			tb_ports.cb.memOut <= 0;
 			
 			// Begin driving instructions
 			while(1) begin
+				
 				s = new();
 				agt2drv.get(t);
 				$display("Starting new transaction in Driver");
 				foreach(cbs[i]) begin
 					cbs[i].pre_tx(t);
 				end
-				@tb_ports.cb;
+				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
+				@tb_ports.clk;
 				if(t.rst == 1 && t.rst_cycle == 1) begin
 					tb_ports.reset <= 1;
-					dut_mem_ports.reset <= 1;
-					@tb_ports.cb;
+					@tb_ports.clk;
 					tb_ports.reset <= 0;
-					dut_mem_ports.reset <= 0;
-					//@tb_ports.cb;
+					//@tb_ports.clk;
 					continue;
 				end
-				@tb_ports.cb;
+				@tb_ports.clk;
 				if(t.rst == 1 && t.rst_cycle == 2) begin
 					tb_ports.reset <= 1;
-					dut_mem_ports.reset <= 1;
-					@tb_ports.cb;
+					@tb_ports.clk;
 					tb_ports.reset <= 0;
-					dut_mem_ports.reset <= 0;
-					//@tb_ports.cb;
+					//@tb_ports.clk;
 					continue;
 				end
-				tb_ports.cb.memOut <= t.instruction;
-				@tb_ports.cb;
+				@tb_ports.clk;
 				if(t.rst == 1 && t.rst_cycle == 4) begin
 					tb_ports.reset <= 1;
-					dut_mem_ports.reset <= 1;
-					@tb_ports.cb;
+					@tb_ports.clk;
 					tb_ports.reset <= 0;
-					dut_mem_ports.reset <= 0;
-					//@tb_ports.cb;
+					//@tb_ports.clk;
 					continue;
 				end
-				//tb_ports.cb.memOut <= dut_mem_ports.memOut;
-				s.pc = tb_ports.cb.pc;
-				s.regs[0] = tb_ports.cb.r0;
-				s.regs[1] = tb_ports.cb.r1;
-				s.regs[2] = tb_ports.cb.r2;
-				s.regs[3] = tb_ports.cb.r3;
-				s.regs[4] = tb_ports.cb.r4;
-				s.regs[5] = tb_ports.cb.r5;
-				s.regs[6] = tb_ports.cb.r6;
-				s.regs[7] = tb_ports.cb.r7;
+				s.pc = tb_ports.pc;
+				s.regs[0] = tb_ports.r0;
+				s.regs[1] = tb_ports.r1;
+				s.regs[2] = tb_ports.r2;
+				s.regs[3] = tb_ports.r3;
+				s.regs[4] = tb_ports.r4;
+				s.regs[5] = tb_ports.r5;
+				s.regs[6] = tb_ports.r6;
+				s.regs[7] = tb_ports.r7;
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
@@ -384,44 +364,36 @@ package lc3_pkg;
 /* 						s.dst_val = my_memory[s.src1 + t.offset6];
 						s.dst_reg = t.dst; */
 					end
-					@tb_ports.cb;
+					@tb_ports.clk;
 					if(t.rst == 1 && t.rst_cycle == 5) begin
 						tb_ports.reset <= 1;
-						dut_mem_ports.reset <= 1;
-						@tb_ports.cb;
+						@tb_ports.clk;
 						tb_ports.reset <= 0;
-						dut_mem_ports.reset <= 0;
-						//@tb_ports.cb;
+						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.cb;					
+					@tb_ports.clk;					
 					if(t.rst == 1 && t.rst_cycle == 6) begin
 						tb_ports.reset <= 1;
-						dut_mem_ports.reset <= 1;
-						@tb_ports.cb;
+						@tb_ports.clk;
 						tb_ports.reset <= 0;
-						dut_mem_ports.reset <= 0;
-						//@tb_ports.cb;
+						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.cb;					
+					@tb_ports.clk;					
 					if(t.rst == 1 && t.rst_cycle == 7) begin
 						tb_ports.reset <= 1;
-						dut_mem_ports.reset <= 1;
-						@tb_ports.cb;
+						@tb_ports.clk;
 						tb_ports.reset <= 0;
-						dut_mem_ports.reset <= 0;
-						//@tb_ports.cb;
+						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.cb;					
+					@tb_ports.clk;					
 					if(t.rst == 1 && t.rst_cycle == 8) begin
 						tb_ports.reset <= 1;
-						dut_mem_ports.reset <= 1;
-						@tb_ports.cb;
+						@tb_ports.clk;
 						tb_ports.reset <= 0;
-						dut_mem_ports.reset <= 0;
-						//@tb_ports.cb;
+						//@tb_ports.clk;
 						continue;
 					end
 				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
@@ -438,24 +410,20 @@ package lc3_pkg;
 /* 						s.dst_val = my_memory[s.pc + t.pc_offset9];
 						s.dst_reg = t.dst; */
 					end
-					@tb_ports.cb;
+					@tb_ports.clk;
 					if(t.rst == 1 && t.rst_cycle == 5) begin
 						tb_ports.reset <= 1;
-						dut_mem_ports.reset <= 1;
-						@tb_ports.cb;
+						@tb_ports.clk;
 						tb_ports.reset <= 0;
-						dut_mem_ports.reset <= 0;
-						//@tb_ports.cb;
+						//@tb_ports.clk;
 						continue;
 					end
-					@tb_ports.cb;					
+					@tb_ports.clk;					
 					if(t.rst == 1 && t.rst_cycle == 6) begin
 						tb_ports.reset <= 1;
-						dut_mem_ports.reset <= 1;
-						@tb_ports.cb;
+						@tb_ports.clk;
 						tb_ports.reset <= 0;
-						dut_mem_ports.reset <= 0;
-						//@tb_ports.cb;
+						//@tb_ports.clk;
 						continue;
 					end
 				end else if((t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_not) || (t.opcode == op_br) || (t.opcode == op_jmp) 
@@ -485,7 +453,7 @@ package lc3_pkg;
 /* 						s.dst_val = s.regs[t.dst];
 						s.dst_reg = t.dst; */
 					end else if(t.opcode == op_br) begin //branch instruction
-						if((t.n_flag & tb_ports.cb.n_flag) || (t.z_flag & tb_ports.cb.z_flag) || (t.p_flag & tb_ports.cb.p_flag)) begin
+						if((t.n_flag & tb_ports.n_flag) || (t.z_flag & tb_ports.z_flag) || (t.p_flag & tb_ports.p_flag)) begin
 							s.pc = s.pc + t.pc_offset9;
 						end
 					end else if(t.opcode == op_jmp) begin // jump
@@ -548,34 +516,34 @@ package lc3_pkg;
 		
 		task run();
 			forever begin
+				@ports.clk;
 				if(ports.reset == 1) continue;
-				@ports.cb;
+				@ports.clk;
 				if(ports.reset == 1) continue;
-				@ports.cb;
+				@ports.clk;
 				if(ports.reset == 1) continue;
-				@ports.cb;
+				@ports.clk;
 				if(ports.reset == 1) continue;
-				@ports.cb;
 				t = new($root.lc3_top.my_lc3.ir);
 				s = new();
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(ports.reset == 1) continue;
-					@ports.cb;
+					@ports.clk;
 					if(ports.reset == 1) continue;
-					@ports.cb;
+					@ports.clk;
 					if(ports.reset == 1) continue;
-					@ports.cb;
+					@ports.clk;
 					if(ports.reset == 1) continue;
-					@ports.cb;
+					@ports.clk;
 					if(t.opcode == op_sti) begin
 						s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end
 				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
 					if(ports.reset == 1) continue;
-					@ports.cb;
+					@ports.clk;
 					if(ports.reset == 1) continue;
-					@ports.cb;
+					@ports.clk;
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
@@ -589,15 +557,15 @@ package lc3_pkg;
 				end else begin
 					//Illegal opcode
 				end
-				s.pc = ports.cb.pc;
-				s.regs[0] = ports.cb.r0;
-				s.regs[1] = ports.cb.r1;
-				s.regs[2] = ports.cb.r2;
-				s.regs[3] = ports.cb.r3;
-				s.regs[4] = ports.cb.r4;
-				s.regs[5] = ports.cb.r5;
-				s.regs[6] = ports.cb.r6;
-				s.regs[7] = ports.cb.r7;
+				s.pc = ports.pc;
+				s.regs[0] = ports.r0;
+				s.regs[1] = ports.r1;
+				s.regs[2] = ports.r2;
+				s.regs[3] = ports.r3;
+				s.regs[4] = ports.r4;
+				s.regs[5] = ports.r5;
+				s.regs[6] = ports.r6;
+				s.regs[7] = ports.r7;
 				sb.check_actual(s);
 			end
 		endtask
@@ -641,7 +609,6 @@ package lc3_pkg;
 	
 	class Environment;
 		virtual test_if.TB2DUT tb_ports;
-		virtual mem_if.TB2MEM dut_mem_ports;
 		Generator gen;
 		Agent agt;
 		Driver drv;
@@ -651,9 +618,8 @@ package lc3_pkg;
 		mailbox #(Transaction ) gen2agt, agt2drv;
 		mailbox #(State) driver_states;
 		
-		function new(virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm);
+		function new(virtual test_if.TB2DUT tbd);
 			tb_ports = tbd;
-			dut_mem_ports = dutm;
 		endfunction
 		
 		function void build();
@@ -667,7 +633,7 @@ package lc3_pkg;
 			sb = new(cfg, driver_states);
 			gen = new(gen2agt, cfg);
 			agt = new(gen2agt, agt2drv);
-			drv = new(agt2drv, tb_ports, dut_mem_ports, sb, driver_states);
+			drv = new(agt2drv, tb_ports, sb, driver_states);
 			mon = new(tb_ports, sb);
 		endfunction
 		
@@ -676,8 +642,8 @@ package lc3_pkg;
 				gen.run();
 				agt.run();
 				drv.run();
-				drv.connect_signals();
-				//mon.run();
+				//drv.connect_signals();
+				mon.run();
 			join_any
             $display("Finishing Env.run");
 		endtask
@@ -763,7 +729,6 @@ package lc3_pkg;
 		Environment env;
 		Driver_cbs_coverage dcv;
 		virtual test_if.TB2DUT tbdut_if;
-		virtual mem_if.TB2MEM dutmem_if;
 		string name;
 	   
 		function new(string n);
@@ -774,8 +739,7 @@ package lc3_pkg;
 		virtual task run_test();
 			$display("Starting TestBasic run_test");
 			tbdut_if = $root.lc3_top.tbdut_if.TB2DUT;
-			dutmem_if = $root.lc3_top.dut_mem_if.TB2MEM;
-			env = new(tbdut_if, dutmem_if);
+			env = new(tbdut_if);
 			env.build();
 			$display("Built Environment in TestBasic");
 			env.cfg.num_instructions = 10;
