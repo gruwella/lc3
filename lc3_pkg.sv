@@ -82,7 +82,7 @@ package lc3_pkg;
 		Transaction t;
 		Config cfg;
 		
-		function new (mailbox #(Transaction) g2a, Config c);
+		function new (ref mailbox #(Transaction) g2a, ref Config c);
 			gen2agt = g2a;
 			cfg = c;
 		endfunction
@@ -104,7 +104,7 @@ package lc3_pkg;
 		mailbox #(Transaction) gen2agt, agt2drv;
 		Transaction t;
 		
-		function new (mailbox #(Transaction) g2a, a2d);
+		function new (ref mailbox #(Transaction) g2a, a2d);
 			gen2agt = g2a;
 			agt2drv = a2d;
 		endfunction
@@ -253,8 +253,6 @@ package lc3_pkg;
 	
 	class State;
 		logic [15:0] regs [8];
-/* 		logic [15:0] dst_val;
-		logic [2:0] dst_reg; */
 		logic [15:0] pc;
 		logic [15:0] mem_addr;
 		logic [15:0] mem_val;
@@ -264,13 +262,13 @@ package lc3_pkg;
             mem_addr = 0;
             mem_val = 0;
             regs[0] = 0;
-            regs[7] = 0;
-            regs[6] = 0;
-            regs[5] = 0;
-            regs[4] = 0;
-            regs[3] = 0;
-            regs[2] = 0;
             regs[1] = 0;
+            regs[2] = 0;
+            regs[3] = 0;
+            regs[4] = 0;
+            regs[5] = 0;
+            regs[6] = 0;
+            regs[7] = 0;
         endfunction
 	endclass: State
 	
@@ -286,8 +284,9 @@ package lc3_pkg;
 		State s;
 		bit [15:0] my_memory [0:255];
 		Scoreboard sb;
+		mailbox #(State) driver_states;
 		
-		function new (mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm, Scoreboard sb);
+		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm, ref Scoreboard sb, mailbox #(State) d);
 			// Ports
 			tb_ports = tbd;
 			dut_mem_ports = dutm;
@@ -298,8 +297,9 @@ package lc3_pkg;
 			// Instruction count
 			count = 0;
 			
+			driver_states = d;
 			sb = this.sb;
-      s = new();
+			s = new();
 		endfunction
 		
 		task connect_signals;
@@ -320,12 +320,10 @@ package lc3_pkg;
 			tb_ports.reset <= 0;
 			dut_mem_ports.reset <= 0;
 			tb_ports.cb.memOut <= 0;
-			//@tb_ports.cb;
 			
 			// Begin driving instructions
 			while(1) begin
 				s = new();
-				sb.save_expected(s);
 				agt2drv.get(t);
 				$display("Starting new transaction in Driver");
 				foreach(cbs[i]) begin
@@ -351,16 +349,6 @@ package lc3_pkg;
 					//@tb_ports.cb;
 					continue;
 				end
-//				@tb_ports.cb;
-//				if(t.rst == 1 && t.rst_cycle == 3) begin
-//					tb_ports.reset <= 1;
-//					dut_mem_ports.reset <= 1;
-//					@tb_ports.cb;
-//					tb_ports.reset <= 0;
-//					dut_mem_ports.reset <= 0;
-//					//@tb_ports.cb;
-//					continue;
-//				end
 				tb_ports.cb.memOut <= t.instruction;
 				@tb_ports.cb;
 				if(t.rst == 1 && t.rst_cycle == 4) begin
@@ -528,7 +516,7 @@ package lc3_pkg;
 				foreach(cbs[i]) begin
 					cbs[i].post_tx(t, count);
 				end
-				//sb.save_expected(s);
+				driver_states.put(s);
 				count++;
 			end
 		endtask
@@ -553,7 +541,7 @@ package lc3_pkg;
 		Scoreboard sb;
 		Transaction t;
 		
-		function new(input virtual test_if.TB2DUT p, Scoreboard scb);
+		function new(input virtual test_if.TB2DUT p, ref Scoreboard scb);
 			ports = p;
 			sb = scb;
 		endfunction
@@ -620,18 +608,16 @@ package lc3_pkg;
 	class Scoreboard;
 		Config cfg;
 		integer count;
-		State expected[$];
+		mailbox #(State) driver_states;
 		
-		function new(Config c);
+		function new(ref Config c, mailbox #(State) d);
+			driver_states = d;
 			cfg = c;
 		endfunction
 		
-		function void save_expected(ref State s);
-			expected.push_back(s);
-		endfunction
-		
-		function void check_actual(State a);
-			State e = expected.pop_front();
+		function void check_actual(ref State a);
+			State e;
+			driver_states.get(e);
 			if(a.pc != e.pc) begin
 				cfg.errors++;
 				$display("%g\tError: PC does not match!  Expected: 0x%h  Actual: 0x%h", $time, e.pc, a.pc);
@@ -663,6 +649,7 @@ package lc3_pkg;
 		Scoreboard sb;
 		Config cfg;
 		mailbox #(Transaction ) gen2agt, agt2drv;
+		mailbox #(State) driver_states;
 		
 		function new(virtual test_if.TB2DUT tbd, virtual mem_if.TB2MEM dutm);
 			tb_ports = tbd;
@@ -673,13 +660,14 @@ package lc3_pkg;
 			//Initialize mailboxes
 			gen2agt = new(1);
 			agt2drv = new(1);
+			driver_states = new(5);
 			
 			//Initialize transactors
 			cfg = new();
-			sb = new(cfg);
+			sb = new(cfg, driver_states);
 			gen = new(gen2agt, cfg);
 			agt = new(gen2agt, agt2drv);
-			drv = new(agt2drv, tb_ports, dut_mem_ports, sb);
+			drv = new(agt2drv, tb_ports, dut_mem_ports, sb, driver_states);
 			mon = new(tb_ports, sb);
 		endfunction
 		
