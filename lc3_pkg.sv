@@ -585,7 +585,7 @@ package lc3_pkg;
 			cfg = c;
 		endfunction
 		
-		function void check_actual(ref State a);
+		task check_actual(ref State a);
 			State e;
 			driver_states.get(e);
 			before_errors = cfg.errors;
@@ -606,7 +606,7 @@ package lc3_pkg;
 					end
 				end
 				if(before_errors < cfg.errors) begin
-					$display("%g\tSuccess: expected and actual values match!");
+					$display("%g\tSuccess: expected and actual values match!", $time);
 				end
 			end
 		endfunction
