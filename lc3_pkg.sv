@@ -94,6 +94,7 @@ package lc3_pkg;
 				`SV_RAND_CHECK(t.randomize());
 				gen2agt.put(t);
 			end
+			$display("Returning from Generator.run");
 		endtask
 	
 	endclass: Generator
@@ -602,6 +603,8 @@ package lc3_pkg;
 						$display("%g\tError: R%d does not match!  Expected: 0x%h  Actual: 0x%h", $time, i, e.regs[i], a.regs[i]);
 					end
 				end
+			end else begin
+				$display("%g\tSuccess: expected and actual values match!");
 			end
 		endfunction
 	endclass: Scoreboard
@@ -642,7 +645,6 @@ package lc3_pkg;
 				gen.run();
 				agt.run();
 				drv.run();
-				//drv.connect_signals();
 				mon.run();
 			join_any
             $display("Finishing Env.run");
