@@ -325,6 +325,7 @@ package lc3_pkg;
 			// Begin driving instructions
 			while(1) begin
 				s = new();
+				sb.save_expected(s);
 				agt2drv.get(t);
 				$display("Starting new transaction in Driver");
 				foreach(cbs[i]) begin
