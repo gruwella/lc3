@@ -577,6 +577,7 @@ package lc3_pkg;
 	class Scoreboard;
 		Config cfg;
 		integer count;
+		integer before_errors;
 		mailbox #(State) driver_states;
 		
 		function new(ref Config c, mailbox #(State) d);
@@ -587,6 +588,7 @@ package lc3_pkg;
 		function void check_actual(ref State a);
 			State e;
 			driver_states.get(e);
+			before_errors = cfg.errors;
 			if(a.pc != e.pc) begin
 				cfg.errors++;
 				$display("%g\tError: PC does not match!  Expected: 0x%h  Actual: 0x%h", $time, e.pc, a.pc);
@@ -603,8 +605,9 @@ package lc3_pkg;
 						$display("%g\tError: R%d does not match!  Expected: 0x%h  Actual: 0x%h", $time, i, e.regs[i], a.regs[i]);
 					end
 				end
-			end else begin
-				$display("%g\tSuccess: expected and actual values match!");
+				if(before_errors < cfg.errors) begin
+					$display("%g\tSuccess: expected and actual values match!");
+				end
 			end
 		endfunction
 	endclass: Scoreboard
