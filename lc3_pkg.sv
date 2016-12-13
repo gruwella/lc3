@@ -35,7 +35,7 @@ package lc3_pkg;
 		rand bit rst; //TODO add constraint
 		rand integer rst_cycle;
 		
-		constraint rst_d { rst dist {0:=98, 1:=2};}
+		constraint rst_d { rst dist {0:=98000, 1:=2};} //TODO change back to 98
 		constraint rst_c { rst_cycle >= 0; rst_cycle <= 8;}
 		
 		function new (bit [15:0] i=0);
@@ -258,6 +258,7 @@ package lc3_pkg;
 		logic [15:0] pc;
 		logic [15:0] mem_addr;
 		logic [15:0] mem_val;
+		logic [15:0] instr;
 
         function new();
             pc = 0;
@@ -271,7 +272,15 @@ package lc3_pkg;
             regs[5] = 0;
             regs[6] = 0;
             regs[7] = 0;
+			instr = 0;
         endfunction
+		
+		function void to_string();
+			$display("PC: 0x%h", pc);
+			$display("Mem Addr: 0x%h", mem_addr);
+			$display("Mem Val: 0x%h", mem_val);
+			$display("Registers: 0: 0x%h 1: 0x%h 2: 0x%h 3: 0x%h 4: 0x%h 5: 0x%h 6: 0x%h 7: 0x%h", regs[0], regs[1], regs[2], regs[3], regs[4], regs[5], regs[6], regs[7]);
+		endfunction
 	endclass: State
 	
 	typedef class Scoreboard;
@@ -319,7 +328,7 @@ package lc3_pkg;
 					cbs[i].pre_tx(t);
 				end
 				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
-				$display("New Instruction: 0x%h", t.instruction[15:12]);
+				//$display("New Instruction: 0x%h", t.instruction[15:12]);
 				@tb_ports.clk;
 				if(t.rst == 1 && t.rst_cycle == 1) begin
 					tb_ports.reset <= 1;
@@ -344,6 +353,15 @@ package lc3_pkg;
 					//@tb_ports.clk;
 					continue;
 				end
+				@tb_ports.clk;
+				if(t.rst == 1 && t.rst_cycle == 4) begin
+					tb_ports.reset <= 1;
+					@tb_ports.clk;
+					tb_ports.reset <= 0;
+					//@tb_ports.clk;
+					continue;
+				end
+				s.instr = t.instruction;
 				s.pc = tb_ports.pc;
 				s.regs[0] = tb_ports.r0;
 				s.regs[1] = tb_ports.r1;
@@ -596,26 +614,33 @@ package lc3_pkg;
 		task check_actual(ref State a);
 			driver_states.get(e);
 			before_errors = cfg.errors;
+			$display("Instruction: 0x%h", e.instr);
+			$display("Expected:");
+			e.to_string();
+			$display("Actual:");
+			a.to_string();
 			if(a.pc != e.pc) begin
 				cfg.errors++;
-				$display("%g\tError: PC does not match!  Expected: 0x%h  Actual: 0x%h", $time, e.pc, a.pc);
-			end else if(a.mem_addr != e.mem_addr) begin
+				$display("%g\tError: PC does not match!", $time);
+			end
+			if(a.mem_addr != e.mem_addr) begin
 				cfg.errors++;
-				$display("%g\tError: Memory Address does not match!  Expected: 0x%h  Actual: 0x%h", $time, e.mem_addr, a.mem_addr);
-			end else if(a.mem_val != e.mem_val) begin
+				$display("%g\tError: Memory Address does not match!", $time);
+			end
+			if(a.mem_val != e.mem_val) begin
 				cfg.errors++;
-				$display("%g\tError: Memory Value does not match!  Expected: 0x%h  Actual: 0x%h", $time, e.mem_val, a.mem_val);
-			end else begin
-				for(integer i = 0; i < 8; i++) begin
-					if(a.regs[i] != e.regs[i]) begin
-						cfg.errors++;
-						$display("%g\tError: R%d does not match!  Expected: 0x%h  Actual: 0x%h", $time, i, e.regs[i], a.regs[i]);
-					end
+				$display("%g\tError: Memory Value does not match!", $time);
+			end
+			for(integer i = 0; i < 8; i++) begin
+				if(a.regs[i] != e.regs[i]) begin
+					cfg.errors++;
+					$display("%g\tError: R%d does not match!", $time, i);
 				end
 			end
 			if(before_errors == cfg.errors) begin
 				$display("%g\tSuccess: expected and actual values match!", $time);
 			end
+			$display(" ");
 			count++;
 			if(count >= cfg.num_instructions) begin
 				cfg.done = 1;
