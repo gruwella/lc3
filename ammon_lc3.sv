@@ -217,7 +217,7 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 				end else if(opcode == op_rti || opcode == op_ioe) begin // RTI or IOE
 					// Do nothing
 				end else begin //any other opcode, will be ignored.
-					$display("Instruction is not supported and will be ignored");
+					$display("%g\tInstruction 0x%h is not supported and will be ignored", $time, opcode);
 				end
 			end
 			ex_ld1: begin

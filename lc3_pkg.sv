@@ -258,6 +258,20 @@ package lc3_pkg;
 		logic [15:0] pc;
 		logic [15:0] mem_addr;
 		logic [15:0] mem_val;
+
+        function new();
+            pc = 0;
+            mem_addr = 0;
+            mem_val = 0;
+            regs[0] = 0;
+            regs[7] = 0;
+            regs[6] = 0;
+            regs[5] = 0;
+            regs[4] = 0;
+            regs[3] = 0;
+            regs[2] = 0;
+            regs[1] = 0;
+        endfunction
 	endclass: State
 	
 	typedef class Scoreboard;
@@ -678,8 +692,8 @@ package lc3_pkg;
 				gen.run();
 				agt.run();
 				drv.run();
-				//drv.connect_signals();
-				mon.run();
+				drv.connect_signals();
+				//mon.run();
 			join_any
 		endtask
 		
