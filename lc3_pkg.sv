@@ -371,6 +371,7 @@ package lc3_pkg;
 				s.regs[5] = tb_ports.r5;
 				s.regs[6] = tb_ports.r6;
 				s.regs[7] = tb_ports.r7;
+				$display("%Driver Sampling DUT\n", $time);
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
@@ -627,6 +628,7 @@ package lc3_pkg;
 				s.regs[6] = ports.r6;
 				s.regs[7] = ports.r7;
 				sb.check_actual(s);
+				$display("%gMonitor Sampling DUT\n", $time);
 			end
 		endtask
 		
