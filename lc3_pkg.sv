@@ -541,32 +541,62 @@ package lc3_pkg;
 			forever begin
 				if(sb.cfg.done == 1) break;
 				@(posedge ports.clk);
-				if(ports.reset == 1) continue;
+				if(ports.reset == 1) begin
+					@(posedge ports.clk);
+					continue;
+				end
 				@(posedge ports.clk);
-				if(ports.reset == 1) continue;
+				if(ports.reset == 1) begin
+					@(posedge ports.clk);
+					continue;
+				end
 				@(posedge ports.clk);
-				if(ports.reset == 1) continue;
+				if(ports.reset == 1) begin
+					@(posedge ports.clk);
+					continue;
+				end
 				@(posedge ports.clk);
-				if(ports.reset == 1) continue;
+				if(ports.reset == 1) begin
+					@(posedge ports.clk);
+					continue;
+				end
 				t = new($root.lc3_top.my_lc3.ir);
 				s = new();
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
-					if(ports.reset == 1) continue;
+					if(ports.reset == 1) begin
+						@(posedge ports.clk);
+						continue;
+					end
 					@(posedge ports.clk);
-					if(ports.reset == 1) continue;
+					if(ports.reset == 1) begin
+						@(posedge ports.clk);
+						continue;
+					end
 					@(posedge ports.clk);
-					if(ports.reset == 1) continue;
+					if(ports.reset == 1) begin
+						@(posedge ports.clk);
+						continue;
+					end
 					@(posedge ports.clk);
-					if(ports.reset == 1) continue;
+					if(ports.reset == 1) begin
+						@(posedge ports.clk);
+						continue;
+					end
 					@(posedge ports.clk);
 					if(t.opcode == op_sti) begin
 						s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end
 				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
-					if(ports.reset == 1) continue;
+					if(ports.reset == 1) begin
+						@(posedge ports.clk);
+						continue;
+					end
 					@(posedge ports.clk);
-					if(ports.reset == 1) continue;
+					if(ports.reset == 1) begin
+						@(posedge ports.clk);
+						continue;
+					end
 					@(posedge ports.clk);
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
