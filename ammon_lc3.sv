@@ -5,7 +5,7 @@
 `timescale 1ns / 1ns
 `default_nettype none
 
-typedef enum {start, fetch0, fetch1, fetch2, decode, ex_ld1, ex_ld2, ex_st1, ex_st2, ex_ldi1, ex_ldi2, ex_ldi3, ex_ldi4, ex_sti1, ex_sti2, ex_sti3, ex_sti4, ex_str1, ex_str2, ex_ldr1, ex_ldr2} state_type;
+typedef enum {start, fetch0, fetch1, fetch2, decode, ex_ld1, ex_ld2, ex_st1, ex_st2, ex_ldi1, ex_ldi2, ex_ldi3, ex_ldi4, ex_sti1, ex_sti2, ex_sti3, ex_sti4, ex_str1, ex_str2, ex_ldr1, ex_ldr2, ex_trap1} state_type;
 typedef enum {op_add=32'h1, op_and=32'h5, op_not=32'h9, op_br=32'h0, op_jmp=32'hC, op_jsr=32'h4, op_ld=32'h2, op_ldr=32'h6, op_lea=32'hE, op_ldi=32'hA, op_st=32'h3, op_str=32'h7, op_sti=32'hB, op_rti=32'h8, op_ioe=32'hD, op_trap=32'hF} opcode_type;
 
 module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
@@ -77,6 +77,8 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 				next_state = ex_sti1;
 			end else if(opcode == op_str) begin //store register
 				next_state = ex_str1;
+			end else if(opcode == op_trap) begin //store register
+				next_state = ex_trap1;
 			end else begin
 				next_state = fetch0;
 			end
@@ -211,11 +213,8 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 					end
 				end else if(opcode == op_trap) begin //trap
 					regwe_next = 1'b1;
-					en_pc_next = 1'b1;
-					load_pc_next = 1'b1;
-					sel_pc_next = 2'b01;
 					dr_next = 3'b111;
-					sel_eab2_next = 2'b10;
+					en_pc_next = 1'b1;
 				end else if(opcode == op_rti || opcode == op_ioe) begin // RTI or IOE
 					// Do nothing
 				end else begin //any other opcode, will be ignored.
@@ -289,6 +288,12 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 				flagwe_next = 1'b1;
 				en_mdr_next = 1'b1;
 			end
+			ex_trap1: begin
+				en_marmux_next = 1'b1;
+				sel_marmux_next = 1'b1;
+				load_pc_next = 1'b1;
+				sel_pc_next = 2'b10;
+			end
 			default: begin
 				//assert none of the control signals
 			end
@@ -343,7 +348,7 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 	assign eab_out = eab_arg1 + eab_arg2;
 
 	//MARMux
-	assign marmux_ir8 = {{8{ir[7]}}, ir[7:0]};
+	assign marmux_ir8 = {{8{0}}, ir[7:0]};
 	assign marmux_out = (sel_marmux == 0) ? eab_out : marmux_ir8;
 
 	//PC
