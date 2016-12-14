@@ -6,11 +6,17 @@ module memory(memOut, clk, reset, memWE, mdrOut, MARReg);
 	//MAR MAR0(Buss, clk, reset, ldMAR, MARReg);	  
 	//MDR MDR0(Buss, memOut, selMDR, clk, reset, ldMDR, mdrOut);
 
-	logic [15:0] my_memory [0:255] = '{default:'1};
+	logic [15:0] my_memory [0:255];
 	assign memOut = my_memory[MARReg]; 	   
 	always @(posedge clk) 
 	begin		  	 
 		if (memWE)
 			my_memory[MARReg] <= mdrOut;
+	end
+	
+	initial begin
+		for(int i = 0; i < 256; i++) begin
+			my_memory[i] = $urandom_range(0, 65535);
+		end
 	end
 endmodule

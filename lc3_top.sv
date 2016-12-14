@@ -2,7 +2,7 @@
 // This file is the top level of a system that tests a simple RISC processor.
 
 `default_nettype none
-`timescale 1ns / 100ps
+`timescale 1ns / 1ns
 module lc3_top;
 
 	bit clk;
