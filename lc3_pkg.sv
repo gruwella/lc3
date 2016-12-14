@@ -543,7 +543,7 @@ package lc3_pkg;
 		task run();
 			forever begin
 				if(sb.cfg.done == 1) break;
-				if(resetting == 1) begin
+/* 				if(resetting == 1) begin
 					@(posedge ports.clk);
 				end
 				@(posedge ports.clk);
@@ -589,10 +589,7 @@ package lc3_pkg;
 						continue;
 					end
 					@(posedge ports.clk);
-					if(t.opcode == op_sti) begin
-						s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
-						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
-					end
+
 				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
 					if(ports.reset == 1) begin
 						resetting = 1;
@@ -604,31 +601,36 @@ package lc3_pkg;
 						continue;
 					end
 					@(posedge ports.clk);
+				end else if((t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_not) || (t.opcode == op_br) || (t.opcode == op_jmp) 
+							|| (t.opcode == op_jsr) || (t.opcode == op_trap) || (t.opcode == op_rti) || (t.opcode == op_ioe)) begin // 4 clk cycles
+							
+				end else begin
+					//Illegal opcode
+				end */
+				if($root.lc3_top.my_lc3.state == fetch0 && resetting == 0) begin
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end else if(t.opcode == op_str) begin
 						s.mem_addr = t.src1 + t.offset6;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
+					end else if(t.opcode == op_sti) begin
+						s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
+						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end
-				end else if((t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_not) || (t.opcode == op_br) || (t.opcode == op_jmp) 
-							|| (t.opcode == op_jsr) || (t.opcode == op_trap) || (t.opcode == op_rti) || (t.opcode == op_ioe)) begin // 4 clk cycles
-							
-				end else begin
-					//Illegal opcode
+					resetting = 0;
+					s.pc = ports.pc;
+					s.regs[0] = ports.r0;
+					s.regs[1] = ports.r1;
+					s.regs[2] = ports.r2;
+					s.regs[3] = ports.r3;
+					s.regs[4] = ports.r4;
+					s.regs[5] = ports.r5;
+					s.regs[6] = ports.r6;
+					s.regs[7] = ports.r7;
+					sb.check_actual(s);
+					$display("%gMonitor Sampling DUT\n", $time);
 				end
-				resetting = 0;
-				s.pc = ports.pc;
-				s.regs[0] = ports.r0;
-				s.regs[1] = ports.r1;
-				s.regs[2] = ports.r2;
-				s.regs[3] = ports.r3;
-				s.regs[4] = ports.r4;
-				s.regs[5] = ports.r5;
-				s.regs[6] = ports.r6;
-				s.regs[7] = ports.r7;
-				sb.check_actual(s);
-				$display("%gMonitor Sampling DUT\n", $time);
 			end
 		endtask
 		
