@@ -543,6 +543,17 @@ package lc3_pkg;
 		task run();
 			forever begin
 				if(sb.cfg.done == 1) break;
+				if(ports.reset == 1) begin
+					resetting = 1;
+					@(posedge ports.clk);
+					continue;
+				end else begin
+					if($root.lc3_top.my_lc3.state_logic == start) begin
+						@(posedge ports.clk);
+					end
+					@(posedge ports.clk);
+					resetting = 0;
+				end
 /* 				if(resetting == 1) begin
 					@(posedge ports.clk);
 				end
