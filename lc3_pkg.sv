@@ -431,7 +431,7 @@ package lc3_pkg;
 				//$display("Opcode: 0x%h", t.opcode);
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
-						if(my_memory[s.pc + t.pc_offset9] == s.regs[t.dst]) begin
+						if(my_memory[s.pc + t.pc_offset9] == s.pc + t.pc_offset9) begin
 							s.mem_addr = s.pc + t.pc_offset9;
 						end else begin
 							s.mem_addr = my_memory[s.pc + t.pc_offset9];
