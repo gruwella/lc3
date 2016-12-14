@@ -607,7 +607,7 @@ package lc3_pkg;
 				end else begin
 					//Illegal opcode
 				end */
-				if($root.lc3_top.my_lc3.state == fetch0 && resetting == 0) begin
+				if($root.lc3_top.my_lc3.state_logic == fetch0 && resetting == 0) begin
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
