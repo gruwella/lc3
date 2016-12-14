@@ -13,4 +13,4 @@ sim:/lc3_top/my_lc3/mdr \
 sim:/lc3_top/my_lc3/my_dp/en_mdr \
 sim:/lc3_top/my_lc3/state \
 sim:/lc3_top/my_lc3/next_state 
-run 2000ns
+run -all 
