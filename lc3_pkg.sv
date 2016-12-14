@@ -531,55 +531,60 @@ package lc3_pkg;
 		State s;
 		Scoreboard sb;
 		Transaction t;
+		int resetting;
 		
 		function new(input virtual test_if.TB2DUT p, input Scoreboard scb);
 			ports = p;
 			sb = scb;
+			resetting = 1;
 		endfunction
 		
 		task run();
 			forever begin
 				if(sb.cfg.done == 1) break;
+				if(resetting == 1) begin
+					@(posedge ports.clk);
+				end
 				@(posedge ports.clk);
 				if(ports.reset == 1) begin
-					@(posedge ports.clk);
+					resetting = 1;
 					continue;
 				end
 				@(posedge ports.clk);
 				if(ports.reset == 1) begin
-					@(posedge ports.clk);
+					resetting = 1;
 					continue;
 				end
 				@(posedge ports.clk);
 				if(ports.reset == 1) begin
-					@(posedge ports.clk);
+					resetting = 1;
 					continue;
 				end
 				@(posedge ports.clk);
 				if(ports.reset == 1) begin
-					@(posedge ports.clk);
+					resetting = 1;
 					continue;
 				end
 				t = new($root.lc3_top.my_lc3.ir);
 				s = new();
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(ports.reset == 1) begin
-						@(posedge ports.clk);
+					resetting = 1;
 						continue;
 					end
 					@(posedge ports.clk);
 					if(ports.reset == 1) begin
-						@(posedge ports.clk);
+					resetting = 1;
 						continue;
 					end
 					@(posedge ports.clk);
 					if(ports.reset == 1) begin
-						@(posedge ports.clk);
+					resetting = 1;
 						continue;
 					end
 					@(posedge ports.clk);
 					if(ports.reset == 1) begin
-						@(posedge ports.clk);
+					resetting = 1;
 						continue;
 					end
 					@(posedge ports.clk);
@@ -589,12 +594,12 @@ package lc3_pkg;
 					end
 				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
 					if(ports.reset == 1) begin
-						@(posedge ports.clk);
+						resetting = 1;
 						continue;
 					end
 					@(posedge ports.clk);
 					if(ports.reset == 1) begin
-						@(posedge ports.clk);
+						resetting = 1;
 						continue;
 					end
 					@(posedge ports.clk);
@@ -611,6 +616,7 @@ package lc3_pkg;
 				end else begin
 					//Illegal opcode
 				end
+				resetting = 0;
 				s.pc = ports.pc;
 				s.regs[0] = ports.r0;
 				s.regs[1] = ports.r1;
