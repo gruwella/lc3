@@ -353,7 +353,7 @@ package lc3_pkg;
 					//@tb_ports.clk;
 					continue;
 				end
-				@(posedge tb_ports.clk);
+				@(posedge tb_ports.clk); 
 				if(t.rst == 1 && t.rst_cycle == 4) begin
 					tb_ports.reset <= 1;
 					@(posedge tb_ports.clk);
