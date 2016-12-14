@@ -380,10 +380,6 @@ package lc3_pkg;
 						s.regs[t.dst] = my_memory[my_memory[s.pc + t.pc_offset9]];
 /* 						s.dst_val = my_memory[my_memory[s.pc + t.pc_offset9]];
 						s.dst_reg = t.dst; */
-					end else if(t.opcode == op_ldr) begin // load register
-						s.regs[t.dst] = my_memory[t.src1 + t.offset6];
-/* 						s.dst_val = my_memory[s.src1 + t.offset6];
-						s.dst_reg = t.dst; */
 					end
 					@(posedge tb_ports.clk);
 					if(t.rst == 1 && t.rst_cycle == 5) begin
@@ -429,6 +425,10 @@ package lc3_pkg;
 					end else if(t.opcode == op_ld) begin // load
 						s.regs[t.dst] = my_memory[s.pc + t.pc_offset9];
 /* 						s.dst_val = my_memory[s.pc + t.pc_offset9];
+						s.dst_reg = t.dst; */
+					end else if(t.opcode == op_ldr) begin // load register
+						s.regs[t.dst] = my_memory[t.src1 + t.offset6];
+/* 						s.dst_val = my_memory[s.src1 + t.offset6];
 						s.dst_reg = t.dst; */
 					end
 					@(posedge tb_ports.clk);
