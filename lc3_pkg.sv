@@ -371,6 +371,7 @@ package lc3_pkg;
 					cbs[i].pre_tx(t);
 				end
 				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
+				my_memory[tb_ports.pc] = t.instruction;
 				//$display("New Instruction: 0x%h", t.instruction[15:12]);
 				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 1) begin
