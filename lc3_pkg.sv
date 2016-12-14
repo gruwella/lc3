@@ -370,8 +370,6 @@ package lc3_pkg;
 				foreach(cbs[i]) begin
 					cbs[i].pre_tx(t);
 				end
-				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
-				my_memory[tb_ports.pc] = t.instruction;
 				//$display("New Instruction: 0x%h", t.instruction[15:12]);
 				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 1) begin
@@ -381,6 +379,9 @@ package lc3_pkg;
 					//@tb_ports.clk;
 					continue;
 				end
+				$display("%g\tInserting instruction %x into address %x", $time, t.instruction, tb_ports.pc);
+				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
+				my_memory[tb_ports.pc] = t.instruction;
 				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 2) begin
 					tb_ports.reset <= 1;
