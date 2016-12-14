@@ -23,14 +23,14 @@ package lc3_pkg;
 	
 		opcode_type opcode;
 		bit [2:0] src1, src2, dst;
-		bit [4:0] imm5_val;
+		bit [15:0] imm5_val;
 		bit imm5_bit;
-		bit [8:0] pc_offset9;
-		bit [10:0] pc_offset11;
+		bit [15:0] pc_offset9;
+		bit [15:0] pc_offset11;
 		bit jsr_bit;
 		bit n_flag, z_flag, p_flag;
-		bit [7:0] trapvec8;
-		bit [5:0] offset6;
+		bit [15:0] trapvec8;
+		bit [15:0] offset6;
 		rand bit [15:0] instruction;
 		rand bit rst; //TODO add constraint
 		rand integer rst_cycle;
@@ -62,18 +62,20 @@ package lc3_pkg;
 			src1 = instruction[8:6];
 			src2 = instruction[2:0];
 			dst = instruction[11:9];
-			imm5_val = instruction[4:0];
+			imm5_val = { {11{instruction[4]}}, instruction[4:0]};//{ {11{instruction[4]}}, instruction[4:0]}
 			imm5_bit = instruction[5];
-			pc_offset9 = instruction[8:0];
+			pc_offset9 = { {7{instruction[8]}}, instruction[8:0]};
 			n_flag = instruction[11];
 			z_flag = instruction[10];
 			p_flag = instruction[9];
 			jsr_bit = n_flag;
-			pc_offset11 = instruction[10:0];
-			trapvec8 = instruction[7:0];
-			offset6 = instruction[5:0];
+			pc_offset11 = { {5{instruction[10]}}, instruction[10:0]};
+			trapvec8 = { {8{0}}, instruction[7:0]};
+			offset6 = { {10{instruction[5]}}, instruction[5:0]};
 			//$display("T.opcode in new: 0x%h, instruction: 0x%h", opcode, instruction);
 		endfunction
+		
+		
 		
 		function void post_randomize();
 /* 			case(instruction[31:28])
@@ -98,18 +100,18 @@ package lc3_pkg;
 			src1 = instruction[8:6];
 			src2 = instruction[2:0];
 			dst = instruction[11:9];
-			imm5_val = instruction[4:0];
+			imm5_val = { {11{instruction[4]}}, instruction[4:0]};//{ {11{instruction[4]}}, instruction[4:0]}
 			imm5_bit = instruction[5];
-			pc_offset9 = instruction[8:0];
+			pc_offset9 = { {7{instruction[8]}}, instruction[8:0]};
 			n_flag = instruction[11];
 			z_flag = instruction[10];
 			p_flag = instruction[9];
 			jsr_bit = n_flag;
-			pc_offset11 = instruction[10:0];
-			trapvec8 = instruction[7:0];
-			offset6 = instruction[5:0];
+			pc_offset11 = { {5{instruction[10]}}, instruction[10:0]};
+			trapvec8 = { {8{0}}, instruction[7:0]};
+			offset6 = { {10{instruction[5]}}, instruction[5:0]};
 			
-			$display("T.opcode in post_randomize: 0x%h, instruction: 0x%h", opcode, instruction);
+			//$display("T.opcode in post_randomize: 0x%h, instruction: 0x%h", opcode, instruction);
 		endfunction
 	
 	endclass: Transaction
@@ -335,6 +337,7 @@ package lc3_pkg;
 		bit [15:0] my_memory [0:65535];
 		Scoreboard sb;
 		mailbox #(State) driver_states;
+		int temp;
 		
 		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, input Scoreboard sb, mailbox #(State) d);
 			// Ports
@@ -350,7 +353,7 @@ package lc3_pkg;
 			this.sb = sb;
 			s = new();
 			for(int i = 0; i < 65535; i++) begin
-				my_memory[i] = i; //$urandom_range(0, 65535);
+				my_memory[i] = $root.lc3_top.dut_mem.my_memory[i];
 			end
 		endfunction
 		
@@ -379,7 +382,7 @@ package lc3_pkg;
 					//@tb_ports.clk;
 					continue;
 				end
-				$display("%g\tInserting instruction %x into address %x", $time, t.instruction, tb_ports.pc);
+				//$display("%g\tInserting instruction %x into address %x", $time, t.instruction, tb_ports.pc);
 				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
 				my_memory[tb_ports.pc] = t.instruction;
 				@(posedge tb_ports.clk);
@@ -416,14 +419,14 @@ package lc3_pkg;
 				s.regs[5] = tb_ports.r5;
 				s.regs[6] = tb_ports.r6;
 				s.regs[7] = tb_ports.r7;
-				$display("%Driver Sampling DUT\n", $time);
-				$display("Opcode: 0x%h", t.opcode);
+				//$display("%Driver Sampling DUT\n", $time);
+				//$display("Opcode: 0x%h", t.opcode);
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
 						s.mem_val = s.regs[t.dst]; // This is actually a source register
 						my_memory[s.mem_addr] = s.mem_val;
-						$display("************************************tb pc: 0x%h tb pcoffset9: 0x%h", s.pc, t.pc_offset9);
+						//$display("************************************tb pc: 0x%h tb pcoffset9: 0x%h", s.pc, t.pc_offset9);
 					end else if(t.opcode == op_ldi) begin // load indirect
 						s.regs[t.dst] = my_memory[my_memory[s.pc + t.pc_offset9]];
 /* 						s.dst_val = my_memory[my_memory[s.pc + t.pc_offset9]];
@@ -496,11 +499,22 @@ package lc3_pkg;
 						//@tb_ports.clk;
 						continue;
 					end
+				end else if(t.opcode == op_trap) begin // 5 clk cycles (just trap)
+					s.regs[7] = s.pc;
+					s.pc = t.trapvec8;
+					@(posedge tb_ports.clk);				
+					if(t.rst == 1 && t.rst_cycle == 6) begin
+						tb_ports.reset <= 1;
+						@(posedge tb_ports.clk);
+						tb_ports.reset <= 0;
+						//@tb_ports.clk;
+						continue;
+					end
 				end else if((t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_not) || (t.opcode == op_br) || (t.opcode == op_jmp) 
-							|| (t.opcode == op_jsr) || (t.opcode == op_trap) || (t.opcode == op_rti) || (t.opcode == op_ioe)) begin // 4 clk cycles
+							|| (t.opcode == op_jsr) || (t.opcode == op_rti) || (t.opcode == op_ioe) || (t.opcode == op_lea)) begin // 4 clk cycles
 					if(t.opcode == op_add) begin //add instruction
 						if(t.imm5_bit == 1) begin
-							s.regs[t.dst] = s.regs[t.src1] + { {11{t.imm5_val[4]}}, t.imm5_val}; //{ {11{t.imm5_val[4]}}, t.imm5_val}
+							s.regs[t.dst] = s.regs[t.src1] + t.imm5_val;
 /* 							s.dst_val = s.regs[t.dst];
 							s.dst_reg = t.dst; */
 						end else begin
@@ -510,7 +524,7 @@ package lc3_pkg;
 						end
 					end else if(t.opcode == op_and) begin //and instruction
 						if(t.imm5_bit == 1) begin
-							s.regs[t.dst] = s.regs[t.src1] & { {11{t.imm5_val[4]}}, t.imm5_val};
+							s.regs[t.dst] = s.regs[t.src1] & t.imm5_val;
 /* 							s.dst_val = s.regs[t.dst];
 							s.dst_reg = t.dst; */
 						end else begin
@@ -529,21 +543,19 @@ package lc3_pkg;
 					end else if(t.opcode == op_jmp) begin // jump
 						s.pc = s.regs[t.src1];
 					end else if(t.opcode == op_jsr) begin // jump sub routine
+						temp = s.regs[t.src1];
 						s.regs[7] = s.pc;
 						if(t.jsr_bit == 1) begin
 							s.pc = s.pc + t.pc_offset11;
 						end else begin
-							s.pc = s.regs[t.src1];
+							s.pc = temp;
 						end
 					end else if(t.opcode == op_lea) begin // load effective address
 						s.regs[t.dst] = s.pc + t.pc_offset9;
 /* 						s.dst_val = s.pc + t.pc_offset9;
 						s.dst_reg = t.dst; */
-					end else if(t.opcode == op_trap) begin // trap
-						s.regs[7] = s.pc;
-						s.pc = t.trapvec8;
 					end else if(t.opcode == op_rti || t.opcode == op_ioe) begin
-						$display("Found opcode rti or ioe");
+						//$display("Found opcode rti or ioe");
 						// do nothing
 					end else begin
 						$display("Invalid opcode");
@@ -603,73 +615,9 @@ package lc3_pkg;
 					@(posedge ports.clk);
 					resetting = 0;
 				end
-/* 				if(resetting == 1) begin
-					@(posedge ports.clk);
-				end
-				@(posedge ports.clk);
-				if(ports.reset == 1) begin
-					resetting = 1;
-					continue;
-				end
-				@(posedge ports.clk);
-				if(ports.reset == 1) begin
-					resetting = 1;
-					continue;
-				end
-				@(posedge ports.clk);
-				if(ports.reset == 1) begin
-					resetting = 1;
-					continue;
-				end
-				@(posedge ports.clk);
-				if(ports.reset == 1) begin
-					resetting = 1;
-					continue;
-				end
-				t = new($root.lc3_top.my_lc3.ir);
-				s = new();
-				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
-					if(ports.reset == 1) begin
-					resetting = 1;
-						continue;
-					end
-					@(posedge ports.clk);
-					if(ports.reset == 1) begin
-					resetting = 1;
-						continue;
-					end
-					@(posedge ports.clk);
-					if(ports.reset == 1) begin
-					resetting = 1;
-						continue;
-					end
-					@(posedge ports.clk);
-					if(ports.reset == 1) begin
-					resetting = 1;
-						continue;
-					end
-					@(posedge ports.clk);
-
-				end else if((t.opcode == op_ld) || (t.opcode == op_st) || (t.opcode == op_str) || (t.opcode == op_ldr)) begin // 6 clk cycles
-					if(ports.reset == 1) begin
-						resetting = 1;
-						continue;
-					end
-					@(posedge ports.clk);
-					if(ports.reset == 1) begin
-						resetting = 1;
-						continue;
-					end
-					@(posedge ports.clk);
-				end else if((t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_not) || (t.opcode == op_br) || (t.opcode == op_jmp) 
-							|| (t.opcode == op_jsr) || (t.opcode == op_trap) || (t.opcode == op_rti) || (t.opcode == op_ioe)) begin // 4 clk cycles
-							
-				end else begin
-					//Illegal opcode
-				end */
 				if($root.lc3_top.my_lc3.state_logic == $cast(state_int,fetch0) && resetting == 0) begin
 					t = new($root.lc3_top.my_lc3.ir);
-					$display("IR: 0x%h", $root.lc3_top.my_lc3.ir);
+					//$display("IR: 0x%h", $root.lc3_top.my_lc3.ir);
 					s = new();
 					resetting = 0;
 					s.pc = ports.pc;
@@ -681,20 +629,20 @@ package lc3_pkg;
 					s.regs[5] = ports.r5;
 					s.regs[6] = ports.r6;
 					s.regs[7] = ports.r7;
-					$display("opcode is: 0x%d", t.opcode);
+					//$display("opcode is: 0x%d", t.opcode);
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end else if(t.opcode == op_str) begin
-						s.mem_addr = t.src1 + t.offset6;
+						s.mem_addr = s.regs[t.src1] + t.offset6;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end else if(t.opcode == op_sti) begin
-						$display("********************************dut pc: 0x%h dut pcoffset9: 0x%h", s.pc, t.pc_offset9);
+						//$display("********************************dut pc: 0x%h dut pcoffset9: 0x%h", s.pc, t.pc_offset9);
 						s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end
 					sb.check_actual(s);
-					$display("%gMonitor Sampling DUT\n", $time);
+					//$display("%gMonitor Sampling DUT\n", $time);
 				end else begin
 					//$display("Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 				end
@@ -723,36 +671,40 @@ package lc3_pkg;
 		task check_actual(ref State a);
 			driver_states.get(e);
 			before_errors = cfg.errors;
-			$display("Instruction: 0x%h", e.instr);
-			$display("Expected:");
-			e.to_string();
-			$display("Actual:");
-			a.to_string();
-			if(a.pc != e.pc) begin
-				error = 1;
-				$display("%g\tError: PC does not match!", $time);
-			end
-			if(a.mem_addr != e.mem_addr) begin
-				error = 1;
-				$display("%g\tError: Memory Address does not match!", $time);
-			end
-			if(a.mem_val != e.mem_val) begin
-				error = 1;
-				$display("%g\tError: Memory Value does not match!", $time);
-			end
-			for(integer i = 0; i < 8; i++) begin
-				if(a.regs[i] != e.regs[i]) begin
+			if((a.pc != e.pc) || (a.mem_addr != e.mem_addr) || (a.mem_val != e.mem_val) || (a.regs[0] != e.regs[0]) || (a.regs[1] != e.regs[1]) 
+					|| (a.regs[2] != e.regs[2]) || (a.regs[3] != e.regs[3]) || (a.regs[4] != e.regs[4]) || (a.regs[5] != e.regs[5]) 
+					|| (a.regs[6] != e.regs[6]) || (a.regs[7] != e.regs[7])) begin
+						$display("Instruction: 0x%h", e.instr);
+				$display("Expected:");
+				e.to_string();
+				$display("Actual:");
+				a.to_string();
+				if(a.pc != e.pc) begin
 					error = 1;
-					$display("%g\tError: R%d does not match!", $time, i);
+					$display("%g\tError: PC does not match!", $time);
 				end
+				if(a.mem_addr != e.mem_addr) begin
+					error = 1;
+					$display("%g\tError: Memory Address does not match!", $time);
+				end
+				if(a.mem_val != e.mem_val) begin
+					error = 1;
+					$display("%g\tError: Memory Value does not match!", $time);
+				end
+				for(integer i = 0; i < 8; i++) begin
+					if(a.regs[i] != e.regs[i]) begin
+						error = 1;
+						$display("%g\tError: R%d does not match!", $time, i);
+					end
+				end
+				if(error == 0) begin
+					$display("%g\tSuccess: expected and actual values match!", $time);
+				end else begin
+					cfg.errors++;
+					error = 0;
+				end
+				$display(" ");
 			end
-			if(error == 0) begin
-				$display("%g\tSuccess: expected and actual values match!", $time);
-			end else begin
-				cfg.errors++;
-				error = 0;
-			end
-			$display(" ");
 			count++;
 			if(count >= cfg.num_instructions) begin
 				cfg.done = 1;
@@ -785,7 +737,7 @@ package lc3_pkg;
 			//Initialize transactors
 			cfg = new();
 			sb = new(cfg, driver_states);
-			$display("My Integer is: %d", sb.myint);
+			//$display("My Integer is: %d", sb.myint);
 			gen = new(gen2agt, cfg);
 			agt = new(gen2agt, agt2drv);
 			drv = new(agt2drv, tb_ports, sb, driver_states);
@@ -897,7 +849,7 @@ package lc3_pkg;
 			env = new(tbdut_if);
 			env.build();
 			$display("Built Environment in TestBasic");
-			env.cfg.num_instructions = 20;
+			env.cfg.num_instructions = 100000;
 			begin
 				dcv = new();
 				env.drv.cbs.push_back(dcv);
