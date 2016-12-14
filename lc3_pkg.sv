@@ -40,7 +40,25 @@ package lc3_pkg;
 		
 		function new (bit [15:0] i=0);
 			instruction = i;
-			opcode = opcode_type'({28'h0, instruction[31:28]});
+/* 			case(instruction[31:28])
+				4'h1 : opcode = op_add;
+				4'h5 : opcode = op_and;
+				4'h9 : opcode = op_not;
+				4'hC : opcode = op_jmp;
+				4'h4 : opcode = op_jsr;
+				4'h2 : opcode = op_ld;
+				4'h6 : opcode = op_ldr;
+				4'hE : opcode = op_lea;
+				4'hA : opcode = op_ldi;
+				4'h3 : opcode = op_st;
+				4'h7 : opcode = op_str;
+				4'hB : opcode = op_sti;
+				4'h8 : opcode = op_rti;
+				4'hD : opcode = op_ioe;
+				4'hF : opcode = op_trap;
+				default : op_br;
+			endcase */
+			opcode = opcode_type'({28'h0, instruction[15:12]});
 			src1 = instruction[8:6];
 			src2 = instruction[2:0];
 			dst = instruction[11:9];
@@ -54,10 +72,29 @@ package lc3_pkg;
 			pc_offset11 = instruction[10:0];
 			trapvec8 = instruction[7:0];
 			offset6 = instruction[5:0];
+			$display("T.opcode in new: 0x%h, instruction: 0x%h", opcode, instruction);
 		endfunction
 		
 		function void post_randomize();
-			opcode = opcode_type'({28'h0, instruction[31:28]});
+/* 			case(instruction[31:28])
+				4'h1 : opcode = op_add;
+				4'h5 : opcode = op_and;
+				4'h9 : opcode = op_not;
+				4'hC : opcode = op_jmp;
+				4'h4 : opcode = op_jsr;
+				4'h2 : opcode = op_ld;
+				4'h6 : opcode = op_ldr;
+				4'hE : opcode = op_lea;
+				4'hA : opcode = op_ldi;
+				4'h3 : opcode = op_st;
+				4'h7 : opcode = op_str;
+				4'hB : opcode = op_sti;
+				4'h8 : opcode = op_rti;
+				4'hD : opcode = op_ioe;
+				4'hF : opcode = op_trap;
+				default : op_br;
+			endcase */
+			opcode = opcode_type'({28'h0, instruction[15:12]});
 			src1 = instruction[8:6];
 			src2 = instruction[2:0];
 			dst = instruction[11:9];
@@ -71,6 +108,8 @@ package lc3_pkg;
 			pc_offset11 = instruction[10:0];
 			trapvec8 = instruction[7:0];
 			offset6 = instruction[5:0];
+			
+			$display("T.opcode in post_randomize: 0x%h, instruction: 0x%h", opcode, instruction);
 		endfunction
 	
 	endclass: Transaction
@@ -93,6 +132,7 @@ package lc3_pkg;
 				//$display("Creating new transaction in Generator");
 				t = new();
 				`SV_RAND_CHECK(t.randomize());
+				$display("T.opcode in Generator: 0x%h", t.opcode);
 				gen2agt.put(t);
 			end
 			$display("Returning from Generator.run");
@@ -292,7 +332,7 @@ package lc3_pkg;
 		Driver_cbs cbs[$];
 		integer count;
 		State s;
-		bit [15:0] my_memory [0:255];
+		bit [15:0] my_memory [0:65535];
 		Scoreboard sb;
 		mailbox #(State) driver_states;
 		
@@ -309,6 +349,9 @@ package lc3_pkg;
 			driver_states = d;
 			this.sb = sb;
 			s = new();
+			for(int i = 0; i < 65535; i++) begin
+				my_memory[i] = i; //$urandom_range(0, 65535);
+			end
 		endfunction
 		
 		task run;
@@ -372,6 +415,7 @@ package lc3_pkg;
 				s.regs[6] = tb_ports.r6;
 				s.regs[7] = tb_ports.r7;
 				$display("%Driver Sampling DUT\n", $time);
+				$display("Opcode: 0x%h", t.opcode);
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
@@ -428,7 +472,8 @@ package lc3_pkg;
 /* 						s.dst_val = my_memory[s.pc + t.pc_offset9];
 						s.dst_reg = t.dst; */
 					end else if(t.opcode == op_ldr) begin // load register
-						s.regs[t.dst] = my_memory[t.src1 + t.offset6];
+						$display("LDR Instruction: t.dst: 0x%h t.src1: 0x%h t.offset6: 0x%h src+offset: 0x%h mem[src+offset]: 0x%h", t.dst, t.src1, t.offset6, t.src1+t.offset6, my_memory[s.regs[t.src1] + t.offset6]);
+						s.regs[t.dst] = my_memory[s.regs[t.src1] + t.offset6];
 /* 						s.dst_val = my_memory[s.src1 + t.offset6];
 						s.dst_reg = t.dst; */
 					end
@@ -533,6 +578,7 @@ package lc3_pkg;
 		Scoreboard sb;
 		Transaction t;
 		int resetting;
+		int state_int;
 		
 		function new(input virtual test_if.TB2DUT p, input Scoreboard scb);
 			ports = p;
@@ -618,7 +664,9 @@ package lc3_pkg;
 				end else begin
 					//Illegal opcode
 				end */
-				if($root.lc3_top.my_lc3.state_logic == fetch0 && resetting == 0) begin
+				if($root.lc3_top.my_lc3.state_logic == $cast(state_int,fetch0) && resetting == 0) begin
+					t = new($root.lc3_top.my_lc3.ir);
+					s = new();
 					if(t.opcode == op_st) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
@@ -641,6 +689,8 @@ package lc3_pkg;
 					s.regs[7] = ports.r7;
 					sb.check_actual(s);
 					$display("%gMonitor Sampling DUT\n", $time);
+				end else begin
+					//$display("Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 				end
 			end
 		endtask

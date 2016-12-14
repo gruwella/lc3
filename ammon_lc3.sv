@@ -23,7 +23,7 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 	logic ir_n, ir_z, ir_p; 
 	logic take_branch; 
 	state_type state, next_state; // State_type described in the "lc3_pkg" package
-	logic state_logic;
+	int state_logic;
 	assign state_logic = state;
 
 	// IR subsignals

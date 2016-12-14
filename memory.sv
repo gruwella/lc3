@@ -15,8 +15,8 @@ module memory(memOut, clk, reset, memWE, mdrOut, MARReg);
 	end
 	
 	initial begin
-		for(int i = 0; i < 256; i++) begin
-			my_memory[i] = $urandom_range(0, 65535);
+		for(int i = 0; i < 65535; i++) begin
+			my_memory[i] = i; //$urandom_range(0, 65535);
 		end
 	end
 endmodule
