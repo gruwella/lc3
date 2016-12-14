@@ -23,4 +23,4 @@ sim:/lc3_top/my_lc3/my_dp/r5_out \
 sim:/lc3_top/my_lc3/my_dp/r6_out \
 sim:/lc3_top/my_lc3/my_dp/r7_out \
 sim:/lc3_top/my_lc3/my_dp/buss
-run 2000ns
+run -all 
