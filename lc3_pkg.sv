@@ -340,6 +340,7 @@ package lc3_pkg;
 		Scoreboard sb;
 		mailbox #(State) driver_states;
 		int temp;
+		shortint signed_reg;
 		
 		function new (ref mailbox #(Transaction) a2d, virtual test_if.TB2DUT tbd, input Scoreboard sb, mailbox #(State) d);
 			// Ports
@@ -431,7 +432,7 @@ package lc3_pkg;
 				s.n_flag = $root.lc3_top.my_lc3.n_flag;
 				s.z_flag = $root.lc3_top.my_lc3.z_flag;
 				s.p_flag = $root.lc3_top.my_lc3.p_flag;
-				//$display("%Driver Sampling DUT\n", $time);
+				//$display("%Driver Sampling DUT in state %h\n", $time, $root.lc3_top.my_lc3.state_logic);
 				//$display("Opcode: 0x%h", t.opcode);
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
@@ -440,9 +441,11 @@ package lc3_pkg;
 						end else begin
 							s.mem_addr = my_memory[s.pc + t.pc_offset9];
 						end */
-						s.mem_addr = sb.my_memory[s.pc + t.pc_offset9];
-						s.mem_val = s.regs[t.dst];
-						sb.my_memory[s.mem_addr] = s.mem_val;
+						//$display("Before: S.pc: %h t.pc_offset9: %h PC+Offset: %h mem[pc+off]: %h mem[mem[pc+off]]: %h", s.pc, t.pc_offset9, s.pc + t.pc_offset9, sb.my_memory[s.pc + t.pc_offset9], sb.my_memory[sb.my_memory[s.pc + t.pc_offset9]]);
+						s.mem_addr = s.pc + t.pc_offset9;
+						//s.mem_val = s.regs[t.dst];
+						sb.my_memory[sb.my_memory[s.mem_addr]] = s.regs[t.dst];
+						//$display("After: S.pc: %h t.pc_offset9: %h PC+Offset: %h mem[pc+off]: %h mem[mem[pc+off]]: %h", s.pc, t.pc_offset9, s.pc + t.pc_offset9, sb.my_memory[s.pc + t.pc_offset9], sb.my_memory[sb.my_memory[s.pc + t.pc_offset9]]);
 						
 						
 /* 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
@@ -559,7 +562,9 @@ package lc3_pkg;
 							s.dst_reg = t.dst; */
 						end
 					end else if(t.opcode == op_not) begin //not instruction
+						//$display("SRC: %h", s.regs[t.src1]);
 						s.regs[t.dst] = ~(s.regs[t.src1]);
+						//$display("DST: %h", s.regs[t.dst]);
 /* 						s.dst_val = s.regs[t.dst];
 						s.dst_reg = t.dst; */
 					end else if(t.opcode == op_br) begin //branch instruction
@@ -586,23 +591,25 @@ package lc3_pkg;
 					end else begin
 						$display("Invalid opcode");
 					end
-					if((t.opcode == op_lea) || (t.opcode == op_not) || (t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_ld) || (t.opcode == op_ldr) || (t.opcode == op_ldi)) begin
-						if(s.regs[t.dst] < 0) begin
-							s.n_flag = 1;
-							s.z_flag = 0;
-							s.p_flag = 0;
-						end else if(s.regs[t.dst] > 0) begin
-							s.n_flag = 0;
-							s.z_flag = 0;
-							s.p_flag = 1;
-						end else begin
-							s.n_flag = 0;
-							s.z_flag = 1;
-							s.p_flag = 0;
-						end
-					end
 				end else begin
 					$display("%g\tUnknown Instruction %d Received!", $time, t.opcode);
+				end
+				if((t.opcode == op_lea) || (t.opcode == op_not) || (t.opcode == op_add) || (t.opcode == op_and) || (t.opcode == op_ld) || (t.opcode == op_ldr) || (t.opcode == op_ldi)) begin
+					//$display("Value = 0x%h", s.regs[t.dst]);
+					signed_reg = s.regs[t.dst];
+					if(signed_reg < 0) begin
+						s.n_flag = 1;
+						s.z_flag = 0;
+						s.p_flag = 0;
+					end else if(signed_reg > 0) begin
+						s.n_flag = 0;
+						s.z_flag = 0;
+						s.p_flag = 1;
+					end else begin
+						s.n_flag = 0;
+						s.z_flag = 1;
+						s.p_flag = 0;
+					end
 				end
 				foreach(cbs[i]) begin
 					cbs[i].post_tx(t, count);
@@ -656,7 +663,7 @@ package lc3_pkg;
 					@(posedge ports.clk);
 					resetting = 0;
 				end
-				if($root.lc3_top.my_lc3.state_logic == $cast(state_int,fetch0) && resetting == 0) begin
+				if($root.lc3_top.my_lc3.state_logic == 1 && resetting == 0) begin
 					t = new($root.lc3_top.my_lc3.ir);
 					//$display("IR: 0x%h", $root.lc3_top.my_lc3.ir);
 					s = new();
@@ -682,12 +689,13 @@ package lc3_pkg;
 						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end else if(t.opcode == op_sti) begin
 						//$display("********************************dut pc: 0x%h dut pcoffset9: 0x%h", s.pc, t.pc_offset9);
-						if($root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9] == s.regs[t.dst]) begin
+						s.mem_addr = s.pc + t.pc_offset9;
+/* 						($root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9] == s.regs[t.dst]) begin
 							s.mem_addr = s.pc + t.pc_offset9;
 						end else begin
 							s.mem_addr = $root.lc3_top.dut_mem.my_memory[s.pc + t.pc_offset9];
-						end
-						s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
+						end */
+						//s.mem_val = $root.lc3_top.dut_mem.my_memory[s.mem_addr];
 					end else if(t.opcode == op_ld) begin
 						s.mem_addr = s.pc + t.pc_offset9;
 					end else if(t.opcode == op_ldr) begin
@@ -723,6 +731,7 @@ package lc3_pkg;
 			error = 0;
 			for(int i = 0; i < 65535; i++) begin
 				my_memory[i] = $root.lc3_top.dut_mem.my_memory[i];
+				//$display("Addr: %h Value: %h", i, my_memory[i]);
 			end
 		endfunction
 		
@@ -730,15 +739,15 @@ package lc3_pkg;
 			$timeformat(-9, 3, "ns", 8);
 			driver_states.get(e);
 			before_errors = cfg.errors;
-			for(int i = 0; i < 65535; i++) begin
+/* 			for(int i = 0; i < 65535; i++) begin
 				if(my_memory[i] != $root.lc3_top.dut_mem.my_memory[i]) begin
 					error = 1;
 					$display("[%t]\tError: Memory Value does not match at address 0x%h! Expected 0x%h Actual 0x%h", $realtime, i, my_memory[i], $root.lc3_top.dut_mem.my_memory[i]);
 				end
-			end
+			end */
 			if((a.pc != e.pc) || (a.mem_addr != e.mem_addr) || (a.mem_val != e.mem_val) || (a.regs[0] != e.regs[0]) || (a.regs[1] != e.regs[1]) 
 					|| (a.regs[2] != e.regs[2]) || (a.regs[3] != e.regs[3]) || (a.regs[4] != e.regs[4]) || (a.regs[5] != e.regs[5]) 
-					|| (a.regs[6] != e.regs[6]) || (a.regs[7] != e.regs[7])) begin
+					|| (a.regs[6] != e.regs[6]) || (a.regs[7] != e.regs[7]) || (a.p_flag != e.p_flag) || (a.n_flag != e.n_flag) || (a.z_flag != e.z_flag)) begin
 				$display("Instruction %d: 0x%h", count, e.instr);
 				$display("Expected:");
 				e.to_string();
@@ -929,7 +938,7 @@ package lc3_pkg;
 			env = new(tbdut_if);
 			env.build();
 			$display("Built Environment in TestBasic");
-			env.cfg.num_instructions = 100000;
+			env.cfg.num_instructions = 1000000;
 			begin
 				dcv = new();
 				env.drv.cbs.push_back(dcv);

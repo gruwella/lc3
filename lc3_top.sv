@@ -23,8 +23,8 @@ module lc3_top;
 	memory dut_mem(.clk(clk), .memWE(tbdut_if.memwe), .memOut(tbdut_if.memOut), .reset(tbdut_if.reset), .mdrOut(tbdut_if.mdr), .MARReg(tbdut_if.mar));
 	
 	// DUT
-	khalil_LC3 my_lc3(.clk(tbdut_if.clk),
-	//ammon_lc3 my_lc3(.clk(tbdut_if.clk),
+	//khalil_LC3 my_lc3(.clk(tbdut_if.clk),
+	ammon_lc3 my_lc3(.clk(tbdut_if.clk),
         .reset(tbdut_if.reset), 
         .memwe(tbdut_if.memwe), 
         .mdr(tbdut_if.mdr), 
