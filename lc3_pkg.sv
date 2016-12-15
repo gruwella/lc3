@@ -657,10 +657,12 @@ package lc3_pkg;
 			forever begin
 				if(sb.cfg.done == 1) break;
 				if(ports.reset == 1) begin
+					//$display("0Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 					resetting = 1;
 					@(posedge ports.clk);
 					continue;
 				end else begin
+					//$display("1Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 					if($root.lc3_top.my_lc3.state_logic == start) begin
 						@(posedge ports.clk);
 					end
@@ -668,6 +670,7 @@ package lc3_pkg;
 					resetting = 0;
 				end
 				if($root.lc3_top.my_lc3.state_logic == 1 && resetting == 0) begin
+					//$display("2Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 					t = new($root.lc3_top.my_lc3.ir);
 					//$display("IR: 0x%h", $root.lc3_top.my_lc3.ir);
 					s = new();
@@ -710,7 +713,7 @@ package lc3_pkg;
 					sb.check_actual(s);
 					//$display("%gMonitor Sampling DUT\n", $time);
 				end else begin
-					//$display("Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
+					//$display("3Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 				end
 			end
 		endtask
