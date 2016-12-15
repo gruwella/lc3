@@ -1,4 +1,4 @@
-typedef enum bit[36:0] {
+/* typedef enum bit[36:0] {
 	  
 	  start  	=	 	37'b0000000000000000000000000000000000000,
 	  fetch0  	=	 	37'b0000000000000000000000000000000000001,
@@ -38,6 +38,46 @@ typedef enum bit[36:0] {
 	  trap2 =			37'b0010000000000000000000000000000000000,
 	  jsrr0 = 			37'b0100000000000000000000000000000000000,
 	  jsrr1 =			37'b1000000000000000000000000000000000000
+	  
+    } stateTypedef; */
+	
+	typedef enum {
+	  
+	  start  	,
+	  fetch0  	,
+	  fetch1	, 
+	  fetch2	,
+	  decode	, 
+	  not_and_add0,	
+	  jsr0,
+	  br0 ,
+	  ld0 ,
+	  ld1 ,
+	  ld2 ,
+	  st0 ,
+	  st1 ,
+	  st2 ,
+	  jmp0,
+	  ldi0,
+	  ldi1,
+	  ldi2,
+	  ldi3,
+	  ldi4,
+	  ldr0,
+	  ldr1,
+	  ldr2,
+	  lea0,
+	  sti0,
+	  sti1,
+	  sti2,
+	  sti3,
+	  sti4,
+	  str0,
+	  str1,
+	  str2,
+	  trap0,
+	  trap1,
+	  jsrr0
 	  
     } stateTypedef;
 
