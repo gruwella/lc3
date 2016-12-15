@@ -655,6 +655,7 @@ package lc3_pkg;
 		
 		task run();
 			forever begin
+				$display("0Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
 				if(sb.cfg.done == 1) break;
 				if(ports.reset == 1) begin
 					//$display("0Resetting is %d and State_logic is %d and fetch0 is %d", resetting, $root.lc3_top.my_lc3.state_logic, fetch0);
