@@ -168,12 +168,11 @@ package lc3_pkg;
 			//op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap
 			reset_all_cycles_of_instr: cross opcode, reset, reset_cycle{
 				option.weight = 1;
-				//bins rst_ld_cycles = binsof(opcode) intersect{op_ld} ;
 				bins rst_all_cycle_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap} &&binsof(reset_cycle) intersect{[1:8]} && binsof(reset) intersect{1'b1};
 			}
 			reset_all_opcodes: cross opcode, reset{
 				option.weight = 1;
-				bins rst_all_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
+				bins rst_all_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap} && binsof(reset) intersect{1'b1};
 			}
 			branch_with_nzp: cross branch_condition, opcode{
 				option.weight = 1;
@@ -205,6 +204,11 @@ package lc3_pkg;
 			opcode_dst: cross opcode, destination{
 				option.weight = 1;
 				ignore_bins ignore_no_dst = binsof(opcode) intersect {op_br, op_jmp, op_jsr, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
+			}
+			
+			opcode_src_and_dst: cross opcode, source8_6, source2_0, destination{
+				option.weight = 1;
+				bins all_permutations = binsof(opcode) intersect(op_add, op_and) && binsof(source8_6) && binsof(source2_0) && binsof(destination);
 			}
 			
 			//TODO: make more cover groups
