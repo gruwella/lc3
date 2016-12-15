@@ -208,7 +208,7 @@ package lc3_pkg;
 			
 			opcode_src_and_dst: cross opcode, source8_6, source2_0, destination{
 				option.weight = 1;
-				bins all_permutations = binsof(opcode) intersect(op_add, op_and);
+				bins all_permutations = binsof(opcode) intersect{op_add, op_and};
 			}
 			
 			//TODO: make more cover groups
