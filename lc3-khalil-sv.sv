@@ -41,14 +41,18 @@ typedef enum bit[36:0] {
     } stateTypedef;
 
 
-module khalil_LC3(clk, reset,memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
+module khalil_LC3(clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
 
-    output logic memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
-
+    output logic [15:0] mdr, mar, pc, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
+	output logic memwe, n_flag, z_flag, p_flag;
+	input logic [15:0] memOut;
     input logic clk; 
     input logic reset;
+	
+	int state_logic;
+	assign state_logic = Control.currentState;
 
-	  logic[15:0] IR;
+	logic[15:0] ir;
     logic[1:0] aluControl;
     logic[2:0] SR1;
     logic[2:0] SR2;
@@ -65,21 +69,32 @@ module khalil_LC3(clk, reset,memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag
     logic ldIR;
     logic enaMDR;
     logic flagWE;
-	  logic [15:0] Buss; 
-	  logic[15:0] mdrOut;
+	logic [15:0] Buss; 
+	//logic[15:0] mdr;
 
 
 
-	Datapath Datapath(IR, N, Z, P, aluControl, SR1, SR2, DR, selPC, selEAB2, enaALU, regWE, enaMARM, selMAR, selEAB1, enaPC, ldPC, ldIR, ldMAR, ldMDR, selMDR, memWE, enaMDR, flagWE, clk, reset, Buss, mdrOut,PCW, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
+	Datapath Datapath(.N(n_flag), .Z(z_flag), .P(p_flag), .IR(ir), .aluControl(aluControl), .SR1(SR1), .SR2(SR2), .DR(DR), .selPC(selPC), .selEAB2(selEAB2), .enaALU(enaALU), .regWE(regWE), .enaMARM(enaMARM), .selMAR(selMAR), .selEAB1(selEAB1), .enaPC(enaPC), .ldPC(ldPC), .ldIR(ldIR), .ldMAR(ldMAR), .ldMDR(ldMDR), .selMDR(selMDR), .memWE(memwe), .enaMDR(enaMDR), .flagWE(flagWE), .clk(clk), .reset(reset), .Buss_out(Buss), .mdrOut(mdr), .PCW(pc), .r0_out(r0_out), .r1_out(r1_out), .r2_out(r2_out), .r3_out(r3_out), .r4_out(r4_out), .r5_out(r5_out), .r6_out(r6_out), .r7_out(r7_out));
+	//Datapath Datapath(.N(n_flag), .Z(z_flag), .P(p_flag), .IR(ir), .Buss_out(Buss), .*);
 
-	ControlUnit Control(N, Z, P, IR, aluControl, SR1, SR2, DR, selPC, selEAB2, enaALU, regWE, enaMARM, selMAR, selEAB1, enaPC, ldPC, ldIR, ldMAR, ldMDR, selMDR, memWE, enaMDR, flagWE, clk, reset);
+//	ControlUnit Control(.N(n_flag), .Z(z_flag), .P(p_flag), .IR(ir), aluControl, SR1, SR2, DR, selPC, selEAB2, enaALU, regWE, enaMARM, selMAR, selEAB1, enaPC, ldPC, ldIR, ldMAR, ldMDR, selMDR, memWE, enaMDR, flagWE, clk, reset);
+	ControlUnit Control(.N(n_flag), .Z(z_flag), .P(p_flag), .IR(ir), .memWE(memwe), .*);
 
-	MAR MAR0(Buss, clk, reset, ldMAR, MARReg);	  
-	MDR MDR0(Buss, memOut, selMDR, clk, reset, ldMDR, mdrOut);
+	//MAR MAR0(Buss, clk, reset, ldMAR, .MARReg(mar));
+	MAR MAR0(.MARReg(mar), .*);	  
+	MDR MDR0(.MDRReg(mdr), .*);
+	//MDR MDR0(Buss, memOut, selMDR, clk, reset, ldMDR, .mdrOut(mdr));
 
 endmodule
 
-
+/*     input logic memWE,
+    input logic enaMDR,
+    input logic flagWE,
+    input logic clk,
+    input logic reset,
+    output logic [15:0] Buss_out,
+    input logic [15:0] mdrOut,
+    output logic[15:0] PCW, */
 
 module ControlUnit(
    input logic N,
@@ -159,13 +174,13 @@ module ControlUnit(
 unique case(currentState)
 		fetch0			:	nextState = fetch1;
 		fetch1			:	nextState = fetch2;
-		fetch2			:	nextState = decode;
-		decode			:	nextState = decoded_nextState;
+		fetch2			:	nextState = decoded_nextState;
+		//decode			:	nextState = decoded_nextState;
 		not_and_add0	:	nextState = fetch0;
-		jsr0			:	nextState = jsr1;
-		jsr1			:	nextState = fetch0;
-		jsrr0			: 	nextState = jsrr1;
-		jsrr1			:	nextState = fetch0;
+		jsr0			:	nextState = fetch0;
+		//jsr1			:	nextState = fetch0;
+		jsrr0			: 	nextState = fetch0;
+		//jsrr1			:	nextState = fetch0;
 		br0				:	nextState = fetch0;
 		ld0				:	nextState = ld1;
 		ld1				:	nextState = ld2;
@@ -192,53 +207,49 @@ unique case(currentState)
 		str1			:	nextState = str2;
 		str2			:	nextState = fetch0;
 		trap0			:	nextState = trap1;
-		trap1			:	nextState = trap2;
-		trap2			:	nextState = fetch0;
+		trap1			:	nextState = fetch0;
+		//trap2			:	nextState = fetch0;
+		default			:	nextState = fetch0; //$display("Error: Bad state: %h", currentState);
 		
 		
 	endcase
 	 		
 							  
 	
-	assign signals = (currentState == fetch0)? 29'b00000000000000000000010010000:
-						  (currentState == fetch1)? 29'b00000000000000000000001001100:
-						  (currentState == fetch2)? 29'b00000000000000000000000100001:
-						  (currentState == decode)? 29'b00000000000000000000000000000:
-						  (currentState == not_and_add0)? {(IR[15:14] + 1'b1), IR[8:6], IR[2:0], IR[11:9], 18'b000001110000000000}:
-						  (currentState == jsr0)? 29'b00000000111000000100010000000:
-						  (currentState == jsr1)? 29'b00000000000010110000001000000:
-						  (currentState == jsrr0)? 29'b00000000111000000100010000000:
-						  (currentState == jsrr1)? {2'b00, IR[8:6], 24'b000000011000000001000000}:
-						  (currentState == br0)? {22'b0000000000001010000000, TB, 6'b000000}:
-						  (currentState == ld0)? 29'b00000000000000100001000010000:
-						  (currentState == ld1)? 29'b00000000000000000000000001100:
-						  (currentState == ld2)? {8'b00000000, IR[11:9], 18'b000000110000000001}:
-						  (currentState == st0)? 29'b00000000000000100001000010000:
-						  (currentState == st1)? {2'b00, IR[11:9], 24'b000000000001000000001000}:
-						  (currentState == st2)? 29'b00000000000000000000000000010: 
-						  (currentState == ldi0)? 29'b00000000000000100001000010000:
-						  (currentState == ldi1)? 29'b00000000000000000000000001100:
-						  (currentState == ldi2)? 29'b00000000000000000000000010001:
-						  (currentState == ldi3)? 29'b00000000000000000000000001100:
-						  (currentState == ldi4)? {8'b00000000, IR[11:9], 18'b000000110000000001}:
-						  (currentState == ldr0)? {2'b00, IR[8:6], 24'b000000001010001000010000}:
-						  (currentState == ldr1)? 29'b00000000000000000000000001100:
-						  (currentState == ldr2)? {8'b00000000, IR[11:9], 18'b000000110000000001}:
-						  (currentState == lea0)? {8'b00000000, IR[11:9], 18'b000100111000000000}:
-						  (currentState == sti0)? 29'b00000000000000100001000010000:
-						  (currentState == sti1)? 29'b00000000000000000000000001100:
-						  (currentState == sti2)? 29'b00000000000000000000000010001:
-						  (currentState == sti3)? {2'b00, IR[11:9], 24'b000000000001000000001000}:
-						  (currentState == sti4)? 29'b00000000000000000000000000010:
-						  (currentState == str0)? {2'b00, IR[8:6], 24'b000000001010001000010000}:
-						  (currentState == str1)? {2'b00, IR[11:9], 24'b000000000001000000001000}:
-						  (currentState == str2)? 29'b00000000000000000000000000010:
-						  (currentState == trap0)? 29'b00000000000000000001100010000:
-						  (currentState == trap1)? 29'b00000000111000000100010001100:
-						  (currentState == trap2)? 29'b00000000000100000000001000001:
-						  {2'b00, IR[8:6], 24'b000000011000000001000000};
+	assign signals = (currentState == fetch0)? 29'b00000000000000000000010010000:// ldMAR enaPC
+						  (currentState == fetch1)? 29'b00000000000000000000001001100:// selMDR ldMDR ldPC
+						  (currentState == fetch2)? 29'b00000000000000000000000100001:// enaMDR ldIR
+						  (currentState == not_and_add0)? {(IR[15:14] + 2'b01), IR[8:6], IR[2:0], IR[11:9], 18'b000001110000000000}:// flagWE regWE enaALU
+						  (currentState == jsr0)? 29'b00000000111010110100011000000:// ldPC enaPC regWE selEAB2=11 selPC=01 DR=7
+						  (currentState == jsrr0)? 29'b00000000111011000100011000000: // ldPC enaPC regWE selEAB1 selPC=01 DR=7
+						  (currentState == br0)? {22'b0000000000001010000000, TB, 6'b000000}: // selEAB2=10 selPC=01
+						  (currentState == ld0)? 29'b00000000000000100001000010000:// ldMAR enaMARM selEAB2=10
+						  (currentState == ld1)? 29'b00000000000000000000000001100:// selMDR ldMDR
+						  (currentState == ld2)? {8'b00000000, IR[11:9], 18'b000000110000000001}: // enaMDR flagWE regWE
+						  (currentState == st0)? 29'b00000000000000100001000010000:// ldMAR enaMARM selEAB2=10
+						  (currentState == st1)? {2'b00, IR[11:9], 24'b000000000001000000001000}:// ldMDR enaALU
+						  (currentState == st2)? 29'b00000000000000000000000000010: // memWE
+						  (currentState == ldi0)? 29'b00000000000000100001000010000: // ldMAR enaMARM selEAB2=10
+						  (currentState == ldi1)? 29'b00000000000000000000000001100: // selMDR ldMDR
+						  (currentState == ldi2)? 29'b00000000000000000000000010001:// enaMDR ldMAR
+						  (currentState == ldi3)? 29'b00000000000000000000000001100: // selMDR ldMDR
+						  (currentState == ldi4)? {8'b00000000, IR[11:9], 18'b000000110000000001}: // enaMDR flagWE regWE
+						  (currentState == ldr0)? {2'b00, IR[8:6], 24'b000000001010001000010000}://ldMAR enaMARM selEAB2=01 selEAB1
+						  (currentState == ldr1)? 29'b00000000000000000000000001100:// selMDR ldMDR 
+						  (currentState == ldr2)? {8'b00000000, IR[11:9], 18'b000000110000000001}://enaMDR flagWE regWE
+						  (currentState == lea0)? {8'b00000000, IR[11:9], 18'b000100111000000000}:// enaMARM flagWE regWE selEAB2=10
+						  (currentState == sti0)? 29'b00000000000000100001000010000:// ldMAR enaMARM selEAB2=10
+						  (currentState == sti1)? 29'b00000000000000000000000001100:// selMDR ldMDR
+						  (currentState == sti2)? 29'b00000000000000000000000010001:// enaMDR ldMAR
+						  (currentState == sti3)? {2'b00, IR[11:9], 24'b000000000001000000001000}:// ldMDR enaALU
+						  (currentState == sti4)? 29'b00000000000000000000000000010:// memWE
+						  (currentState == str0)? {2'b00, IR[8:6], 24'b000000001010001000010000}:// ldMAR enaMARM selEAB2=01 selEAB1
+						  (currentState == str1)? {2'b00, IR[11:9], 24'b000000000001000000001000}:// ldMDR enaALU
+						  (currentState == str2)? 29'b00000000000000000000000000010:// memWE
+						  (currentState == trap0)? 29'b00000000111000000100010000000:// enaPC regWE DR=7
+						  (currentState == trap1)? 29'b00000000000100000001101000000:// ldPC selMAR enaMARM selPC=10
+						  {2'b00, IR[8:6], 24'b000000011000000001000000};// ldPC selEAB1 selPC=01 (JMP)
 						  
-	 
 	assign aluControl = signals[28:27];
 	assign SR1 = signals[26:24];
 	assign SR2 = signals[23:21];
@@ -406,32 +417,32 @@ module Datapath(
 endmodule
 
 
-module MAR(Buss, clk, reset, ldMAR, MAR);
+module MAR(Buss, clk, reset, ldMAR, MARReg);
 
 	input [15:0] Buss;
 	input clk, reset, ldMAR;
-	output reg [15:0] MAR;
+	output reg [15:0] MARReg;
 	 
 	  always @(posedge clk or posedge reset) 
 		if (reset == 1'b1) 										   
-				MAR = 0; 
+				MARReg = 0; 
 		else if (ldMAR)
-				MAR = Buss;								 					
+				MARReg = Buss;								 					
 endmodule				
 
 
 
-module MDR(Buss, memOut, selMDR, clk, reset, ldMDR, MDR);
+module MDR(Buss, memOut, selMDR, clk, reset, ldMDR, MDRReg);
 
 	input [15:0] Buss, memOut;
 	input clk, reset, ldMDR, selMDR;
-	output reg [15:0] MDR;
+	output reg [15:0] MDRReg;
 
   always @(posedge clk or posedge reset) 
     if (reset == 1'b1) 										   
-			MDR = 0; 
+			MDRReg = 0; 
 	else if (ldMDR)
-			MDR = selMDR?memOut:Buss;		
+			MDRReg = selMDR?memOut:Buss;		
 endmodule
 
 
