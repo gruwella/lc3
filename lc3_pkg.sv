@@ -35,7 +35,7 @@ package lc3_pkg;
 		rand bit rst; //TODO add constraint
 		rand integer rst_cycle;
 		
-		constraint rst_d { rst dist {0:=98, 1:=0};} //TODO add reset back in
+		constraint rst_d { rst dist {0:=98, 1:=2};} //TODO add reset back in
 		constraint rst_c { rst_cycle >= 0; rst_cycle <= 8;}
 		
 		function new (bit [15:0] i=0);
