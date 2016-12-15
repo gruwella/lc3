@@ -191,10 +191,8 @@ package lc3_pkg;
 			destination: coverpoint sample_t.instruction[11:9]{
 				option.weight = 0;
 			}
-			branch_offset: coverpoint sample_t.pc_offset9{
+			branch_offset: coverpoint sample_t.instruction[8]{
 				option.weight = 0;
-				wildcard bins positive = {9'b0????????};
-				wildcard bins negative = {9'b1????????};
 			}
 			branch_condition: coverpoint sample_t.instruction[11:9]{
 				option.weight = 0;
@@ -230,45 +228,45 @@ package lc3_pkg;
 			}
 			
 			//op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap
-			cross opcode, reset, reset_cycle{
-				option.weight = 2;
+			reset_all_cycles_of_ld: cross opcode, reset, reset_cycle{
+				option.weight = 1;
 				bins rst_ld = binsof(opcode) intersect{op_ld};
 				bins cycle = binsof(reset_cycle) intersect{[1:8]};
 				bins rst_high = binsof(reset) intersect{1'b1};
 			}
-			cross opcode, reset{
-				option.weight = 2;
+			reset_all_opcodes: cross opcode, reset{
+				option.weight = 1;
 				bins rst_all_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 			}
-			cross branch_condition, opcode{
-				option.weight = 2;
+			branch_with_nzp: cross branch_condition, opcode{
+				option.weight = 1;
 				bins branching_nzp = binsof(opcode) intersect{op_br};
 			}
-			cross branch_offset, opcode{
-				option.weight = 2;
+			branch_pos_and_neg: cross branch_offset, opcode{
+				option.weight = 1;
 				bins branching_pos_neg = binsof(opcode) intersect{op_br};
 			}
 			// Test that all opcodes with a source register have been tested with all possible source registers
-			cross opcode, source11_9{
-				option.weight = 2;
+			opcode_src_11_9: cross opcode, source11_9{
+				option.weight = 1;
 				ignore_bins ignore_no_src11_9 = binsof(opcode) intersect {op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_rti, op_ioe, op_trap};
 			}
 			
 			// Test that all opcodes with a source register have been tested with all possible source registers
-			cross opcode, source8_6{
-				option.weight = 2;
+			opcode_src_8_6: cross opcode, source8_6{
+				option.weight = 1;
 				ignore_bins ignore_no_src8_6 = binsof(opcode) intersect {op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 			}
 			
 			// Test that all opcodes with a source register have been tested with all possible source registers
-			cross opcode, source2_0{
-				option.weight = 2;
+			opcode_src_2_0: cross opcode, source2_0{
+				option.weight = 1;
 				ignore_bins ignore_no_src2_0 = binsof(opcode) intersect {op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 			}
 			
 			// Test that all opcodes with a dst register have been tested with all possible dst registers
-			cross opcode, destination{
-				option.weight = 2;
+			opcode_dst: cross opcode, destination{
+				option.weight = 1;
 				ignore_bins ignore_no_dst = binsof(opcode) intersect {op_br, op_jmp, op_jsr, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 			}
 			
@@ -339,7 +337,6 @@ package lc3_pkg;
 		Driver_cbs cbs[$];
 		integer count;
 		State s;
-		bit [15:0] my_memory [0:65535];
 		Scoreboard sb;
 		mailbox #(State) driver_states;
 		int temp;
@@ -357,9 +354,6 @@ package lc3_pkg;
 			driver_states = d;
 			this.sb = sb;
 			s = new();
-			for(int i = 0; i < 65535; i++) begin
-				my_memory[i] = $root.lc3_top.dut_mem.my_memory[i];
-			end
 		endfunction
 		
 		task run;
@@ -397,7 +391,7 @@ package lc3_pkg;
 				end
 				//$display("%g\tInserting instruction %x into address %x", $time, t.instruction, tb_ports.pc);
 				$root.lc3_top.dut_mem.my_memory[tb_ports.pc] = t.instruction;
-				my_memory[tb_ports.pc] = t.instruction;
+				sb.my_memory[tb_ports.pc] = t.instruction;
 				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 3) begin
 					tb_ports.reset <= 1;
@@ -431,13 +425,14 @@ package lc3_pkg;
 				//$display("Opcode: 0x%h", t.opcode);
 				if((t.opcode == op_ldi) || (t.opcode == op_sti)) begin // 8 clk cycles
 					if(t.opcode == op_sti) begin // store indirect
-						if(my_memory[s.pc + t.pc_offset9] == s.pc + t.pc_offset9) begin
+/* 						if(my_memory[s.pc + t.pc_offset9] == s.pc + t.pc_offset9) begin
 							s.mem_addr = s.pc + t.pc_offset9;
 						end else begin
 							s.mem_addr = my_memory[s.pc + t.pc_offset9];
-						end
+						end */
+						s.mem_addr = sb.my_memory[s.pc + t.pc_offset9];
 						s.mem_val = s.regs[t.dst];
-						my_memory[s.mem_addr] = s.mem_val;
+						sb.my_memory[s.mem_addr] = s.mem_val;
 						
 						
 /* 						s.mem_addr = my_memory[s.pc + t.pc_offset9];
@@ -445,7 +440,7 @@ package lc3_pkg;
 						my_memory[s.mem_addr] = s.mem_val; */
 						//$display("************************************tb pc: 0x%h tb pcoffset9: 0x%h", s.pc, t.pc_offset9);
 					end else if(t.opcode == op_ldi) begin // load indirect
-						s.regs[t.dst] = my_memory[my_memory[s.pc + t.pc_offset9]];
+						s.regs[t.dst] = sb.my_memory[sb.my_memory[s.pc + t.pc_offset9]];
 						s.mem_addr = s.pc + t.pc_offset9;
 						//s.mem_val = my_memory[s.pc + t.pc_offset9];
 /* 						s.dst_val = my_memory[my_memory[s.pc + t.pc_offset9]];
@@ -487,19 +482,19 @@ package lc3_pkg;
 					if(t.opcode == op_st) begin // store
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = s.regs[t.dst]; // This is actually a source register
-						my_memory[s.mem_addr] = s.mem_val;
+						sb.my_memory[s.mem_addr] = s.mem_val;
 					end else if(t.opcode == op_str) begin // store register
 						s.mem_addr = s.regs[t.src1] + t.offset6;
 						s.mem_val = s.regs[t.dst]; // This is actually a source register
-						my_memory[s.mem_addr] = s.mem_val;
+						sb.my_memory[s.mem_addr] = s.mem_val;
 					end else if(t.opcode == op_ld) begin // load
-						s.regs[t.dst] = my_memory[s.pc + t.pc_offset9];
+						s.regs[t.dst] = sb.my_memory[s.pc + t.pc_offset9];
 						s.mem_addr = s.pc + t.pc_offset9;
 /* 						s.dst_val = my_memory[s.pc + t.pc_offset9];
 						s.dst_reg = t.dst; */
 					end else if(t.opcode == op_ldr) begin // load register
 						//$display("LDR Instruction: t.dst: 0x%h t.src1: 0x%h t.offset6: 0x%h src+offset: 0x%h mem[src+offset]: 0x%h", t.dst, t.src1, t.offset6, t.src1+t.offset6, my_memory[s.regs[t.src1] + t.offset6]);
-						s.regs[t.dst] = my_memory[s.regs[t.src1] + t.offset6];
+						s.regs[t.dst] = sb.my_memory[s.regs[t.src1] + t.offset6];
 						s.mem_addr = s.regs[t.src1] + t.offset6;
 /* 						s.dst_val = my_memory[s.src1 + t.offset6];
 						s.dst_reg = t.dst; */
@@ -709,22 +704,32 @@ package lc3_pkg;
 		integer count;
 		integer myint;
 		integer error;
+		bit [15:0] my_memory [0:65535];
 		
 		function new(ref Config c, mailbox #(State) d);
 			driver_states = d;
 			cfg = c;
 			count = 0;
 			error = 0;
+			for(int i = 0; i < 65535; i++) begin
+				my_memory[i] = $root.lc3_top.dut_mem.my_memory[i];
+			end
 		endfunction
 		
 		task check_actual(ref State a);
 			$timeformat(-9, 3, "ns", 8);
 			driver_states.get(e);
 			before_errors = cfg.errors;
+			for(int i = 0; i < 65535; i++) begin
+				if(my_memory[i] != $root.lc3_top.dut_mem.my_memory[i]) begin
+					error = 1;
+					$display("[%t]\tError: Memory Value does not match at address 0x%h! Expected 0x%h Actual 0x%h", $realtime, i, my_memory[i], $root.lc3_top.dut_mem.my_memory[i]);
+				end
+			end
 			if((a.pc != e.pc) || (a.mem_addr != e.mem_addr) || (a.mem_val != e.mem_val) || (a.regs[0] != e.regs[0]) || (a.regs[1] != e.regs[1]) 
 					|| (a.regs[2] != e.regs[2]) || (a.regs[3] != e.regs[3]) || (a.regs[4] != e.regs[4]) || (a.regs[5] != e.regs[5]) 
 					|| (a.regs[6] != e.regs[6]) || (a.regs[7] != e.regs[7])) begin
-						$display("Instruction: 0x%h", e.instr);
+				$display("Instruction %d: 0x%h", count, e.instr);
 				$display("Expected:");
 				e.to_string();
 				$display("Actual:");
@@ -766,9 +771,9 @@ package lc3_pkg;
 					error = 0;
 				end
 				$display(" ");
-/* 				if(e.instr[15:12] == 4'h6) begin
+				if(e.instr[15:12] == 4'h6) begin
 					$display("Reg index: %h Address: %h Value in dut mem: %h Value in golden mem %h", a.instr[8:6], a.regs[a.instr[8:6]], $root.lc3_top.dut_mem.my_memory[a.regs[a.instr[8:6]]], my_memory[a.instr[8:6]]);
-				end */
+				end
 			end
 			count++;
 			if(count >= cfg.num_instructions) begin
@@ -914,7 +919,7 @@ package lc3_pkg;
 			env = new(tbdut_if);
 			env.build();
 			$display("Built Environment in TestBasic");
-			env.cfg.num_instructions = 1000000;
+			env.cfg.num_instructions = 100000;
 			begin
 				dcv = new();
 				env.drv.cbs.push_back(dcv);
