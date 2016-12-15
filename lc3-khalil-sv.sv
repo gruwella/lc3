@@ -1,5 +1,6 @@
 typedef enum bit[36:0] {
 	  
+	  start  	=	 	37'b0000000000000000000000000000000000000,
 	  fetch0  	=	 	37'b0000000000000000000000000000000000001,
 	  fetch1	= 		37'b0000000000000000000000000000000000010, 
 	  fetch2	= 		37'b0000000000000000000000000000000000100,
@@ -164,7 +165,7 @@ module ControlUnit(
   always_ff @(posedge clk)
     begin
 		if (reset)
-			currentState <= fetch0;
+			currentState <= start;
 		else
 			currentState <= nextState;
 	 end
@@ -172,6 +173,7 @@ module ControlUnit(
 	 
   always_comb
 unique case(currentState)
+		start			:	nextState = fetch0;
 		fetch0			:	nextState = fetch1;
 		fetch1			:	nextState = fetch2;
 		fetch2			:	nextState = decoded_nextState;
