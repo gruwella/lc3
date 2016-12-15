@@ -35,7 +35,7 @@ package lc3_pkg;
 		rand bit rst; //TODO add constraint
 		rand integer rst_cycle;
 		
-		constraint rst_d { rst dist {0:=98, 1:=2};} //TODO add reset back in
+		constraint rst_d { rst dist {0:=90, 1:=10};} //TODO add reset back in
 		constraint rst_c { rst_cycle >= 0; rst_cycle <= 8;}
 		
 		function new (bit [15:0] i=0);
@@ -201,6 +201,7 @@ package lc3_pkg;
 				option.weight = 0;
 			}
 			reset_cycle: coverpoint sample_t.rst_cycle{
+                bins cycle[] = {[1:8]};
 				option.weight = 0;
 			}
 			// Ensures that each opcode is followed and preceded by all other opcodes
@@ -228,9 +229,10 @@ package lc3_pkg;
 			}
 			
 			//op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap
-			reset_all_cycles_of_ld: cross opcode, reset, reset_cycle{
+			reset_all_cycles_of_instr: cross opcode, reset, reset_cycle{
 				option.weight = 1;
-				bins rst_ld = binsof(opcode) intersect{op_ld};
+				//bins rst_ld = binsof(opcode) intersect{op_ld};
+				bins rst_all_cycle_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
 				bins cycle = binsof(reset_cycle) intersect{[1:8]};
 				bins rst_high = binsof(reset) intersect{1'b1};
 			}
