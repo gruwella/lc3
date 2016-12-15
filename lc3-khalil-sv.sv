@@ -52,6 +52,7 @@ module khalil_LC3(clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 	
 	int state_logic;
 	assign state_logic = Control.currentState;
+	int dut_id = 1;
 
 	logic[15:0] ir;
     logic[1:0] aluControl;
