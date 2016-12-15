@@ -76,7 +76,7 @@ module khalil_LC3(clk, reset, memwe, mdr, mar, memOut);
     logic flagWE;
 	logic [15:0] Buss; 
 	
-	ERR_RESET_SHOULD_SET_ALL_REGISTERS_TO_ZERO:
+/* 	ERR_RESET_SHOULD_SET_ALL_REGISTERS_TO_ZERO:
 		`assert_clk(reset |-> pc==16'h0 && ir==16'h0 && mdr==16'h0 && mar==16'h0 && n_flag==0 && z_flag==0 && p_flag==0);
 	
 	ERR_FLAGS_SHOULD_NOT_BE_HIGH_AT_THE_SAME_TIME:
@@ -89,7 +89,7 @@ module khalil_LC3(clk, reset, memwe, mdr, mar, memOut);
 		`assert_clk(memwe |-> ##1 !memwe);
 	
 	ERR_MORE_THAN_ONE_BUS_DRIVER:
-		`assert_clk($onehot0({enaPC, enaMARM, enaMDR, enaALU}));
+		`assert_clk($onehot0({enaPC, enaMARM, enaMDR, enaALU})); */
 
 
 
