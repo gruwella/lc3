@@ -265,7 +265,7 @@ unique case(currentState)
 						  (currentState == decode)? 29'b00000000000000000000000000000:
 						  (currentState == not_and_add0)? {(IR[15:14] + 2'b01), IR[8:6], IR[2:0], IR[11:9], 18'b000001110000000000}:// flagWE regWE enaALU
 						  (currentState == jsr0)? 29'b00000000111010110100011000000:// ldPC enaPC regWE selEAB2=11 selPC=01 DR=7
-						  (currentState == jsrr0)? 29'b00000000111011000100011000000: // ldPC enaPC regWE selEAB1 selPC=01 DR=7
+						  (currentState == jsrr0)? {2'b00, IR[8:6], 24'b000111011000100011000000}: // ldPC enaPC regWE selEAB1 selPC=01 DR=7
 						  (currentState == br0)? {22'b0000000000001010000000, TB, 6'b000000}: // selEAB2=10 selPC=01
 						  (currentState == ld0)? 29'b00000000000000100001000010000:// ldMAR enaMARM selEAB2=10
 						  (currentState == ld1)? 29'b00000000000000000000000001100:// selMDR ldMDR
