@@ -168,10 +168,8 @@ package lc3_pkg;
 			//op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap
 			reset_all_cycles_of_instr: cross opcode, reset, reset_cycle{
 				option.weight = 1;
-				//bins rst_ld = binsof(opcode) intersect{op_ld};
-				bins rst_all_cycle_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap};
-				bins cycle = binsof(reset_cycle) intersect{[1:8]};
-				bins rst_high = binsof(reset) intersect{1'b1};
+				//bins rst_ld_cycles = binsof(opcode) intersect{op_ld} ;
+				bins rst_all_cycle_ops = binsof(opcode) intersect{op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap} &&binsof(reset_cycle) intersect{[1:8]} && binsof(reset) intersect{1'b1};
 			}
 			reset_all_opcodes: cross opcode, reset{
 				option.weight = 1;
