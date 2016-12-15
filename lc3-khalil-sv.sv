@@ -199,7 +199,7 @@ module ControlUnit(
 						(opCode == 4'b1011)? sti0:
 						(opCode == 4'b0111)? str0:
 						(opCode == 4'b1111)? trap0:
-						(opCode == 4'b1000)? jmp0:	//If opcode is rti, go to jmp0 (ret) state.				
+						//(opCode == 4'b1000)? jmp0:	//If opcode is rti, go to jmp0 (ret) state.				
 						 fetch0;						
   
   

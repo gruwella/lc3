@@ -755,9 +755,9 @@ package lc3_pkg;
 					$display("[%t]\tError: Memory Value does not match at address 0x%h after instr 0x%h! Expected 0x%h Actual 0x%h", $realtime, i, e.instr, my_memory[i], $root.lc3_top.dut_mem.my_memory[i]);
 				end
 			end */
-			if((a.pc != e.pc) || (a.mem_addr != e.mem_addr) || (a.mem_val != e.mem_val) || (a.regs[0] != e.regs[0]) || (a.regs[1] != e.regs[1]) 
-					|| (a.regs[2] != e.regs[2]) || (a.regs[3] != e.regs[3]) || (a.regs[4] != e.regs[4]) || (a.regs[5] != e.regs[5]) 
-					|| (a.regs[6] != e.regs[6]) || (a.regs[7] != e.regs[7]) || (a.p_flag != e.p_flag) || (a.n_flag != e.n_flag) || (a.z_flag != e.z_flag)) begin
+			//if((a.pc != e.pc) || (a.mem_addr != e.mem_addr) || (a.mem_val != e.mem_val) || (a.regs[0] != e.regs[0]) || (a.regs[1] != e.regs[1]) 
+			//		|| (a.regs[2] != e.regs[2]) || (a.regs[3] != e.regs[3]) || (a.regs[4] != e.regs[4]) || (a.regs[5] != e.regs[5]) 
+			//		|| (a.regs[6] != e.regs[6]) || (a.regs[7] != e.regs[7]) || (a.p_flag != e.p_flag) || (a.n_flag != e.n_flag) || (a.z_flag != e.z_flag)) begin
 				$display("Instruction %d: 0x%h", count, e.instr);
 				$display("Expected:");
 				e.to_string();
@@ -803,7 +803,7 @@ package lc3_pkg;
 				if(e.instr[15:12] == 4'h6) begin
 					$display("Reg index: %h Address: %h Value in dut mem: %h Value in golden mem %h", a.instr[8:6], a.regs[a.instr[8:6]], $root.lc3_top.dut_mem.my_memory[a.regs[a.instr[8:6]]], my_memory[a.instr[8:6]]);
 				end
-			end
+			//end
 			count++;
 			if(count >= cfg.num_instructions) begin
 				cfg.done = 1;
