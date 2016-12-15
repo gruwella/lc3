@@ -10,8 +10,9 @@ module memory(memOut, clk, reset, memWE, mdrOut, MARReg);
 	assign memOut = my_memory[MARReg]; 	   
 	always @(posedge clk) 
 	begin		  	 
-		if (memWE)
+		if (memWE && !reset)
 			my_memory[MARReg] <= mdrOut;
+			
 	end
 	
 	initial begin
