@@ -145,7 +145,7 @@ package lc3_pkg;
 			diff_seq_test: coverpoint sample_t.opcode{
 				bins opcode_seq[] = (op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap => op_add, op_and, op_not, op_br, op_jmp, op_jsr, op_ld, op_ldr, op_lea, op_ldi, op_st, op_str, op_sti, op_rti, op_ioe, op_trap);
 			}
-			// Ensures that each opcode is followed and preceded by all other opcodes
+			// Ensures that each opcode is followed and preceded by itself
 			same_seq_test: coverpoint sample_t.opcode{
 				bins same0 = (op_add => op_add);
 				bins same1 = (op_and => op_and);

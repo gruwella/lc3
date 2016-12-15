@@ -48,7 +48,7 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut);
 	integer alu_ctl_next, sel_pc_next, sel_eab2_next;
 	integer dr_next, sr1_next, sr2_next;
 	
-	ERR_RESET_SHOULD_SET_ALL_REGISTERS_TO_ZERO:
+/* 	ERR_RESET_SHOULD_SET_ALL_REGISTERS_TO_ZERO:
 		`assert_clk(reset |-> pc==16'h0 && ir==16'h0 && mdr==16'h0 && mar==16'h0 && n_flag==0 && z_flag==0 && p_flag==0);
 	
 	ERR_FLAGS_SHOULD_NOT_BE_HIGH_AT_THE_SAME_TIME:
@@ -61,7 +61,7 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut);
 		`assert_clk(memwe |-> ##1 !memwe);
 	
 	ERR_MORE_THAN_ONE_BUS_DRIVER:
-		`assert_clk($onehot0({en_pc, en_marmux, en_mdr, en_alu}));
+		`assert_clk($onehot0({en_pc, en_marmux, en_mdr, en_alu})); */
 
 
 	////////// Control Logic ///////////
@@ -473,24 +473,6 @@ module ammon_lc3_datapath(clk, reset, alu_ctl, sr1, sr2, dr, sel_pc, sel_eab2, e
 	MDR MDR0(buss, memOut, sel_mdr, clk, reset, load_mdr, mdr);
   
 endmodule
-
-/* module memory(mdrOut, Buss, clk, reset, ldMAR, ldMDR, selMDR, memWE);
-	input logic [15:0] Buss;
-	input logic clk, reset, ldMAR, selMDR, ldMDR, memWE;
-	output logic [15:0] mdrOut;				 
-	wire [15:0] MARReg, memOut;
-  
-	MAR MAR0(Buss, clk, reset, ldMAR, MARReg);	  
-	MDR MDR0(Buss, memOut, selMDR, clk, reset, ldMDR, mdrOut);
-
-	logic [15:0] my_memory [0:255];
-	assign memOut = my_memory[MARReg]; 	   
-	always @(posedge clk) 
-	begin		  	 
-		if (memWE)
-			my_memory[MARReg] <= mdrOut;
-	end
-endmodule */
 
 module MAR(Buss, clk, reset, ldMAR, MAR);
 	input logic [15:0] Buss;

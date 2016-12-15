@@ -6,14 +6,11 @@
 module lc3_top;
 
 	bit clk;
-	
 	// Clock generator
 	initial begin
 		clk = 0;
 		forever #50 clk = ~clk;
 	end
-	
-	
 	
 	//Interfaces
 	test_if tbdut_if_0(clk);
