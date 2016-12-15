@@ -376,6 +376,7 @@ package lc3_pkg;
 				//$display("New Instruction: 0x%h", t.instruction[15:12]);
 				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 1) begin
+					$display("[%t]\t RESET,cycle_number = %d, instruction = 0x%h!", $realtime,t.rst_cycle,t.instruction);
 					tb_ports.reset <= 1;
 					@(posedge tb_ports.clk);
 					tb_ports.reset <= 0;
