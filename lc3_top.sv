@@ -14,33 +14,29 @@ module lc3_top;
 	end
 	
 	//Interfaces
-	test_if tbdut_if(clk);
+	test_if tbdut_if_0(clk);
+	test_if tbdut_if_1(clk);
 	
 	// Test bench
 	lc3_tb my_tb();
 	
 	// Memory
-	memory dut_mem(.clk(clk), .memWE(tbdut_if.memwe), .memOut(tbdut_if.memOut), .reset(tbdut_if.reset), .mdrOut(tbdut_if.mdr), .MARReg(tbdut_if.mar));
+	memory dut_mem_0(.clk(clk), .memWE(tbdut_if_0.memwe), .memOut(tbdut_if_0.memOut), .reset(tbdut_if_0.reset), .mdrOut(tbdut_if_0.mdr), .MARReg(tbdut_if_0.mar));
+	memory dut_mem_1(.clk(clk), .memWE(tbdut_if_1.memwe), .memOut(tbdut_if_1.memOut), .reset(tbdut_if_1.reset), .mdrOut(tbdut_if_1.mdr), .MARReg(tbdut_if_1.mar));
 	
 	// DUT
-	khalil_LC3 my_lc3(.clk(tbdut_if.clk),
-	//ammon_lc3 my_lc3(.clk(tbdut_if.clk),
-        .reset(tbdut_if.reset), 
-        .memwe(tbdut_if.memwe), 
-        .mdr(tbdut_if.mdr), 
-        .mar(tbdut_if.mar), 
-        .memOut(tbdut_if.memOut), 
-        .pc(tbdut_if.pc), 
-        .n_flag(tbdut_if.n_flag), 
-        .z_flag(tbdut_if.z_flag), 
-        .p_flag(tbdut_if.p_flag), 
-        .r0_out(tbdut_if.r0), 
-        .r1_out(tbdut_if.r1), 
-        .r2_out(tbdut_if.r2), 
-        .r3_out(tbdut_if.r3), 
-        .r4_out(tbdut_if.r4), 
-        .r5_out(tbdut_if.r5), 
-        .r6_out(tbdut_if.r6), 
-        .r7_out(tbdut_if.r7));
+	ammon_lc3 my_lc3_0(.clk(tbdut_if_0.clk),
+        .reset(tbdut_if_0.reset), 
+        .memwe(tbdut_if_0.memwe), 
+        .mdr(tbdut_if_0.mdr), 
+        .mar(tbdut_if_0.mar), 
+        .memOut(tbdut_if_0.memOut));
 	
+	khalil_LC3 my_lc3_1(.clk(tbdut_if_1.clk),
+        .reset(tbdut_if_1.reset), 
+        .memwe(tbdut_if_1.memwe), 
+        .mdr(tbdut_if_1.mdr), 
+        .mar(tbdut_if_1.mar), 
+        .memOut(tbdut_if_1.memOut));
+		
 endmodule

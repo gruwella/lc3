@@ -1,5 +1,6 @@
 memory.sv
 ammon_lc3.sv
+lc3-khalil-sv.sv
 lc3_pkg.sv
 assert_macros.sv
 lc3_asserts.sv

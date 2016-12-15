@@ -77,18 +77,22 @@
 	  str2,
 	  trap0,
 	  trap1,
-	  jsrr0
+	  jsrr0,
+	  rti,
+	  ioe
 	  
     } stateTypedef;
 
 
-module khalil_LC3(clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
+module khalil_LC3(clk, reset, memwe, mdr, mar, memOut);
 
-    output logic [15:0] mdr, mar, pc, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
-	output logic memwe, n_flag, z_flag, p_flag;
+    output logic [15:0] mdr, mar;
+	output logic memwe;
 	input logic [15:0] memOut;
     input logic clk; 
     input logic reset;
+	logic [15:0] pc, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
+	logic n_flag, z_flag, p_flag;
 	
 	int state_logic;
 	assign state_logic = Control.currentState;
@@ -199,6 +203,8 @@ module ControlUnit(
 						(opCode == 4'b1011)? sti0:
 						(opCode == 4'b0111)? str0:
 						(opCode == 4'b1111)? trap0:
+						(opCode == 4'b1101)? ioe:
+						(opCode == 4'b1000)? rti:
 						//(opCode == 4'b1000)? jmp0:	//If opcode is rti, go to jmp0 (ret) state.				
 						 fetch0;						
   
@@ -251,6 +257,8 @@ unique case(currentState)
 		str2			:	nextState = fetch0;
 		trap0			:	nextState = trap1;
 		trap1			:	nextState = fetch0;
+		ioe				: 	nextState = fetch0;
+		rti				: 	nextState = fetch0;
 		//trap2			:	nextState = fetch0;
 		default			:	nextState = fetch0; //$display("Error: Bad state: %h", currentState);
 		
@@ -263,6 +271,8 @@ unique case(currentState)
 						  (currentState == fetch1)? 29'b00000000000000000000001001100:// selMDR ldMDR ldPC
 						  (currentState == fetch2)? 29'b00000000000000000000000100001:// enaMDR ldIR
 						  (currentState == decode)? 29'b00000000000000000000000000000:
+						  (currentState == ioe)? 29'b00000000000000000000000000000:
+						  (currentState == rti)? 29'b00000000000000000000000000000:
 						  (currentState == not_and_add0)? {(IR[15:14] + 2'b01), IR[8:6], IR[2:0], IR[11:9], 18'b000001110000000000}:// flagWE regWE enaALU
 						  (currentState == jsr0)? 29'b00000000111010110100011000000:// ldPC enaPC regWE selEAB2=11 selPC=01 DR=7
 						  (currentState == jsrr0)? {2'b00, IR[8:6], 24'b000111011000100011000000}: // ldPC enaPC regWE selEAB1 selPC=01 DR=7

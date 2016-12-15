@@ -8,14 +8,14 @@
 typedef enum {start, fetch0, fetch1, fetch2, decode, ex_ld1, ex_ld2, ex_st1, ex_st2, ex_ldi1, ex_ldi2, ex_ldi3, ex_ldi4, ex_sti1, ex_sti2, ex_sti3, ex_sti4, ex_str1, ex_str2, ex_ldr1, ex_ldr2, ex_trap1} state_type;
 typedef enum {op_add=32'h1, op_and=32'h5, op_not=32'h9, op_br=32'h0, op_jmp=32'hC, op_jsr=32'h4, op_ld=32'h2, op_ldr=32'h6, op_lea=32'hE, op_ldi=32'hA, op_st=32'h3, op_str=32'h7, op_sti=32'hB, op_rti=32'h8, op_ioe=32'hD, op_trap=32'hF} opcode_type;
 
-module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_flag, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out);
+module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut);
 	input logic clk, reset;
 	
 	output logic [15:0] mar, mdr; 
 	input logic [15:0] memOut;
 	output logic memwe;
-	output logic n_flag, z_flag, p_flag;
-	output logic [15:0] pc, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
+	logic n_flag, z_flag, p_flag;
+	logic [15:0] pc, r0_out, r1_out, r2_out, r3_out, r4_out, r5_out, r6_out, r7_out;
 
 	// Signal Declarations
 	logic [15:0] ir;
@@ -219,7 +219,7 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 				end else if(opcode == op_rti || opcode == op_ioe) begin // RTI or IOE
 					// Do nothing
 				end else begin //any other opcode, will be ignored.
-					$display("%g\tInstruction 0x%h is not supported and will be ignored", $time, opcode);
+					//$display("%g\tInstruction 0x%h is not supported and will be ignored", $time, opcode);
 				end
 			end
 			ex_ld1: begin
