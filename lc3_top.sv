@@ -13,6 +13,8 @@ module lc3_top;
 		forever #50 clk = ~clk;
 	end
 	
+	
+	
 	//Interfaces
 	test_if tbdut_if_0(clk);
 	test_if tbdut_if_1(clk);
