@@ -25,6 +25,7 @@ module ammon_lc3 (clk, reset, memwe, mdr, mar, memOut, pc, n_flag, z_flag, p_fla
 	state_type state, next_state; // State_type described in the "lc3_pkg" package
 	int state_logic;
 	assign state_logic = state;
+	int dut_id = 0;
 
 	// IR subsignals
 	assign opcode = {28'h0, ir[15:12]};

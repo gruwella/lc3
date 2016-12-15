@@ -176,8 +176,8 @@ unique case(currentState)
 		start			:	nextState = fetch0;
 		fetch0			:	nextState = fetch1;
 		fetch1			:	nextState = fetch2;
-		fetch2			:	nextState = decoded_nextState;
-		//decode			:	nextState = decoded_nextState;
+		fetch2			:	nextState = decode;
+		decode			:	nextState = decoded_nextState;
 		not_and_add0	:	nextState = fetch0;
 		jsr0			:	nextState = fetch0;
 		//jsr1			:	nextState = fetch0;
@@ -221,6 +221,7 @@ unique case(currentState)
 	assign signals = (currentState == fetch0)? 29'b00000000000000000000010010000:// ldMAR enaPC
 						  (currentState == fetch1)? 29'b00000000000000000000001001100:// selMDR ldMDR ldPC
 						  (currentState == fetch2)? 29'b00000000000000000000000100001:// enaMDR ldIR
+						  (currentState == decode)? 29'b00000000000000000000000000000:
 						  (currentState == not_and_add0)? {(IR[15:14] + 2'b01), IR[8:6], IR[2:0], IR[11:9], 18'b000001110000000000}:// flagWE regWE enaALU
 						  (currentState == jsr0)? 29'b00000000111010110100011000000:// ldPC enaPC regWE selEAB2=11 selPC=01 DR=7
 						  (currentState == jsrr0)? 29'b00000000111011000100011000000: // ldPC enaPC regWE selEAB1 selPC=01 DR=7

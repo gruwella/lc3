@@ -408,6 +408,16 @@ package lc3_pkg;
 					//@tb_ports.clk;
 					continue;
 				end
+				if($root.lc3_top.my_lc3.dut_id == 1) begin
+					@(posedge tb_ports.clk); 
+					if(t.rst == 1 && t.rst_cycle == 4) begin
+						tb_ports.reset <= 1;
+						@(posedge tb_ports.clk);
+						tb_ports.reset <= 0;
+						//@tb_ports.clk;
+						continue;
+					end
+				end
 				s.instr = t.instruction;
 				s.pc = tb_ports.pc;
 				s.regs[0] = tb_ports.r0;
