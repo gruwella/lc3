@@ -376,7 +376,7 @@ package lc3_pkg;
 				//$display("New Instruction: 0x%h", t.instruction[15:12]);
 				@(posedge tb_ports.clk);
 				if(t.rst == 1 && t.rst_cycle == 1) begin
-					$display("[%t]\t RESET,cycle_number = %d, instruction = 0x%h!", $realtime,t.rst_cycle,t.instruction);
+					//$display("[%t]\t RESET,cycle_number = %d, instruction = 0x%h!", $realtime,t.rst_cycle,t.instruction);
 					tb_ports.reset <= 1;
 					@(posedge tb_ports.clk);
 					tb_ports.reset <= 0;
@@ -445,6 +445,7 @@ package lc3_pkg;
 						//$display("Before: S.pc: %h t.pc_offset9: %h PC+Offset: %h mem[pc+off]: %h mem[mem[pc+off]]: %h", s.pc, t.pc_offset9, s.pc + t.pc_offset9, sb.my_memory[s.pc + t.pc_offset9], sb.my_memory[sb.my_memory[s.pc + t.pc_offset9]]);
 						s.mem_addr = s.pc + t.pc_offset9;
 						//s.mem_val = s.regs[t.dst];
+						if(!t.rst || (t.rst && t.rst_cycle == 0))
 						sb.my_memory[sb.my_memory[s.mem_addr]] = s.regs[t.dst];
 						//$display("After: S.pc: %h t.pc_offset9: %h PC+Offset: %h mem[pc+off]: %h mem[mem[pc+off]]: %h", s.pc, t.pc_offset9, s.pc + t.pc_offset9, sb.my_memory[s.pc + t.pc_offset9], sb.my_memory[sb.my_memory[s.pc + t.pc_offset9]]);
 						
@@ -496,10 +497,12 @@ package lc3_pkg;
 					if(t.opcode == op_st) begin // store
 						s.mem_addr = s.pc + t.pc_offset9;
 						s.mem_val = s.regs[t.dst]; // This is actually a source register
+						if(!t.rst || (t.rst && (t.rst_cycle > 6 || t.rst_cycle < 1)))
 						sb.my_memory[s.mem_addr] = s.mem_val;
 					end else if(t.opcode == op_str) begin // store register
 						s.mem_addr = s.regs[t.src1] + t.offset6;
 						s.mem_val = s.regs[t.dst]; // This is actually a source register
+						if(!t.rst || (t.rst && (t.rst_cycle > 6 || t.rst_cycle < 1)))
 						sb.my_memory[s.mem_addr] = s.mem_val;
 					end else if(t.opcode == op_ld) begin // load
 						s.regs[t.dst] = sb.my_memory[s.pc + t.pc_offset9];
@@ -743,7 +746,7 @@ package lc3_pkg;
 /* 			for(int i = 0; i < 65535; i++) begin
 				if(my_memory[i] != $root.lc3_top.dut_mem.my_memory[i]) begin
 					error = 1;
-					$display("[%t]\tError: Memory Value does not match at address 0x%h! Expected 0x%h Actual 0x%h", $realtime, i, my_memory[i], $root.lc3_top.dut_mem.my_memory[i]);
+					$display("[%t]\tError: Memory Value does not match at address 0x%h after instr 0x%h! Expected 0x%h Actual 0x%h", $realtime, i, e.instr, my_memory[i], $root.lc3_top.dut_mem.my_memory[i]);
 				end
 			end */
 			if((a.pc != e.pc) || (a.mem_addr != e.mem_addr) || (a.mem_val != e.mem_val) || (a.regs[0] != e.regs[0]) || (a.regs[1] != e.regs[1]) 
