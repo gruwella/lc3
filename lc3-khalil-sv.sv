@@ -76,20 +76,20 @@ module khalil_LC3(clk, reset, memwe, mdr, mar, memOut);
     logic flagWE;
 	logic [15:0] Buss; 
 	
-/* 	ERR_RESET_SHOULD_SET_ALL_REGISTERS_TO_ZERO:
-		`assert_clk(reset |-> pc==16'h0 && ir==16'h0 && mdr==16'h0 && mar==16'h0 && n_flag==0 && z_flag==0 && p_flag==0);
-	
-	ERR_FLAGS_SHOULD_NOT_BE_HIGH_AT_THE_SAME_TIME:
-		`assert_clk(!((n_flag && p_flag) || (n_flag && z_flag) || (z_flag && p_flag)));
-	
-	ERR_MEMWE_IS_HIGH_DURING_NON_STORE_INSTRUCTION:
-		`assert_clk((Control.opCode != 4'b0011) && (Control.opCode != 4'b0111) && (Control.opCode != 4'b1011) |-> !memwe);
-	
-	ERR_MEMWE_IS_HIGH_FOR_MORE_THAN_ONE_CLK_CYCLE:
-		`assert_clk(memwe |-> ##1 !memwe);
-	
-	ERR_MORE_THAN_ONE_BUS_DRIVER:
-		`assert_clk($onehot0({enaPC, enaMARM, enaMDR, enaALU})); */
+// 	ERR_RESET_SHOULD_SET_ALL_REGISTERS_TO_ZERO:
+//		`assert_clk(reset |-> ##1 pc==16'h0 && ir==16'h0 && mdr==16'h0 && mar==16'h0 && n_flag==0 && z_flag==0 && p_flag==0);
+//	
+//	ERR_FLAGS_SHOULD_NOT_BE_HIGH_AT_THE_SAME_TIME:
+//		`assert_clk_xrst(!((n_flag && p_flag) || (n_flag && z_flag) || (z_flag && p_flag)));
+//	
+//	ERR_MEMWE_IS_HIGH_DURING_NON_STORE_INSTRUCTION:
+//		`assert_clk((Control.opCode != 4'b0011) && (Control.opCode != 4'b0111) && (Control.opCode != 4'b1011) |-> !memwe);
+//	
+//	ERR_MEMWE_IS_HIGH_FOR_MORE_THAN_ONE_CLK_CYCLE:
+//		`assert_clk(memwe |-> ##1 !memwe);
+//	
+//	ERR_MORE_THAN_ONE_BUS_DRIVER:
+//		`assert_clk($onehot0({enaPC, enaMARM, enaMDR, enaALU})); 
 
 
 
